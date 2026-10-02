@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Throwaway CORS check for the Apps Script backup. Delete after it passes.
+     Run: npm run dev, open http://localhost:5173/spike/cors.html -->
+<meta charset="utf-8">
+<title>CORS spike</title>
+<p><input id="url" size="90" placeholder="Apps Script /exec URL"></p>
+<p><input id="token" placeholder="token"></p>
+<button id="post">POST event + časovka</button>
+<button id="get">GET events</button>
+<pre id="out"></pre>
+<script type="module">
+  const $ = id => document.getElementById(id)
+  $('url').value = localStorage.spikeUrl ?? ''
+  $('token').value = localStorage.spikeToken ?? ''
+  const log = (label, x) => ($('out').textContent += `${label}: ${typeof x === 'string' ? x : JSON.stringify(x, null, 2)}\n\n`)
+
+  $('post').onclick = async () => {
+    localStorage.spikeUrl = $('url').value
+    localStorage.spikeToken = $('token').value
+    const id = crypto.randomUUID()
+    const now = new Date()
+    const body = {
+      token: $('token').value,
+      events: [
+        { id, startNumber: 1, discipline: 'P5', type: 'start', timestamp: now.toISOString(), deviceId: 'spike', createdAt: now.toISOString() },
+        { id, startNumber: 1, discipline: 'P5', type: 'start', timestamp: now.toISOString(), deviceId: 'spike', createdAt: now.toISOString() },
+      ],
+      casovka: [{ startNumber: 1, discipline: 'P5', field: 'start', value: now.toTimeString().slice(0, 8) }],
+    }
+    try {
+      const res = await fetch($('url').value, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      log('POST (expect added: 1, written: 1)', await res.json())
+    } catch (e) { log('POST failed', String(e)) }
+  }
+
+  $('get').onclick = async () => {
+    try {
+      const res = await fetch(`${$('url').value}?token=${encodeURIComponent($('token').value)}`)
+      log('GET', await res.json())
+    } catch (e) { log('GET failed', String(e)) }
+  }
+</script>

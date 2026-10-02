@@ -1,0 +1,12 @@
+# Personal data (children's names): never commit
+*.xlsx
+*.csv
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+
+node_modules
+dist
+*.local
+.env*
