@@ -27,6 +27,8 @@ export interface AppState {
   sentIds: string[]
   /** Crews as the sheet has them. */
   snapshot: Snapshot
+  /** Finish times stopped before the crew's number was known (ISO), waiting to be assigned. */
+  stops: string[]
 }
 
 /** How other devices see this one in the stations list. */
@@ -35,7 +37,7 @@ export const deviceLabel = (o: { deviceName: string; deviceId: string }) => o.de
 const KEY = 'casomira'
 
 function load(): AppState {
-  const fresh: AppState = { crews: [], events: [], deviceId: crypto.randomUUID(), deviceName: '', stations: [], backup: { url: '', token: '' }, sentIds: [], snapshot: {} }
+  const fresh: AppState = { crews: [], events: [], deviceId: crypto.randomUUID(), deviceName: '', stations: [], backup: { url: '', token: '' }, sentIds: [], snapshot: {}, stops: [] }
   const saved = localStorage.getItem(KEY)
   // older saves lack newer fields
   return saved ? { ...fresh, ...JSON.parse(saved) } : fresh

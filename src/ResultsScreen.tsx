@@ -17,6 +17,7 @@ const COLUMNS = ['Pořadí', 'Číslo', 'Posádka', 'P550', 'Čekačka', 'C2', '
 
 /** Print keeps the plain pre-redesign sheet: text only, helmsman and club in their own columns. */
 const PRINT_COLUMNS = ['Pořadí', 'Číslo', 'Posádka', 'Kormidelník', 'Oddíl', 'P550', 'Čekačka', 'C2', 'Celkem']
+const PRINT_WIDTHS = ['7%', '6%', '20%', '16%', '15%', '9%', '9%', '9%', '9%']
 const printRide = (d: CrewDiscipline) =>
   d.status === 'finished'
     ? formatDuration((Date.parse(d.finish!.timestamp) - Date.parse(d.start!.timestamp)) / 1000)
@@ -68,12 +69,15 @@ export function ResultsScreen({ state }: { state: AppState }) {
           </section>
         ))}
       </div>
-      {/* one table, so every category gets the same column widths */}
-      <table className="print-only print-results">
-        {results.map(({ category, rows }) => (
-          <tbody key={category} className="category">
+      {/* a table per category, so a category never splits across pages; fixed widths keep the columns aligned */}
+      {results.map(({ category, rows }) => (
+        <table key={category} className="print-only print-results">
+          <colgroup>{PRINT_WIDTHS.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+          <thead>
             <tr><th colSpan={PRINT_COLUMNS.length}><h2>{category}</h2></th></tr>
             <tr>{PRINT_COLUMNS.map(c => <th key={c}>{c}</th>)}</tr>
+          </thead>
+          <tbody>
             {rows.map(r => (
               <tr key={r.startNumber}>
                 <td>{printPlace(r)}</td>
@@ -88,8 +92,8 @@ export function ResultsScreen({ state }: { state: AppState }) {
               </tr>
             ))}
           </tbody>
-        ))}
-      </table>
+        </table>
+      ))}
     </section>
   )
 }

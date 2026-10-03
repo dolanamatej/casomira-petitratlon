@@ -24,7 +24,9 @@ function scrollNearEdge(clientY: number) {
 
 export function ScheduleScreen({ state, setState }: Props) {
   const [firstStart, setFirstStart] = useState('10:30')
-  const [intervalMinutes, setIntervalMinutes] = useState(8)
+  // text, so the field can be emptied while typing
+  const [intervalText, setIntervalText] = useState('8')
+  const intervalMinutes = Math.max(1, Number(intervalText) || 1)
   const [printing, setPrinting] = useState<Discipline>()
   const [dragged, setDragged] = useState<number>()
   const [dropTarget, setDropTarget] = useState<number>()
@@ -72,7 +74,7 @@ export function ScheduleScreen({ state, setState }: Props) {
       <div className="card card-pad params no-print">
         <div className="params-form">
           <label className="field">Začátek <TimeInput value={firstStart} onChange={setFirstStart} /></label>
-          <label className="field">Rozestup (min) <input type="number" min={1} value={intervalMinutes} onChange={e => setIntervalMinutes(Number(e.target.value) || 1)} /></label>
+          <label className="field">Rozestup (min) <input type="number" min={1} value={intervalText} onChange={e => setIntervalText(e.target.value)} /></label>
           <button className="btn-primary" onClick={generate} disabled={!registered.length}>Vygenerovat startovku</button>
           <p className="help">Doporučený rozestup je 8 min. Počítá se s {registered.length} registrovanými posádkami.</p>
         </div>

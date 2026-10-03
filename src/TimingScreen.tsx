@@ -145,6 +145,7 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
           </span>
           <button onClick={undo} disabled={!lastAction}>Zpět{lastAction && `: ${LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
           <ExtraCrew state={state} setState={setState} />
+          <button className="btn-primary" onClick={() => setState(s => ({ ...s, stops: [...s.stops, new Date().toISOString()] }))}>Stopnout čas</button>
         </fieldset>
       </header>
       {locked && (
@@ -161,6 +162,15 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
       )}
       <fieldset disabled={locked} className="plain lanes">
         <div className="lane stack">
+          {state.stops.length > 0 && (
+            <section className="card">
+              <CardTitle title="Stopnuté časy" count={state.stops.length} />
+              <datalist id="on-course">{onCourse.map(x => <option key={x.crew.startNumber} value={x.crew.startNumber}>{x.crew.crewName}</option>)}</datalist>
+              <ul className="crew-list">
+                {state.stops.map(at => <StopRow key={at} at={at} crews={crews} record={record} drop={() => setState(s => ({ ...s, stops: s.stops.filter(x => x !== at) }))} />)}
+              </ul>
+            </section>
+          )}
           <section className="card">
             <CardTitle title="Na trati" count={onCourse.length} />
             {onCourse.length ? <ul className="crew-list">
@@ -199,6 +209,31 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
 
 function CardTitle({ title, count }: { title: string; count: number }) {
   return <div className="card-head"><h2 className="card-title">{title} <span className="count">{count}</span></h2></div>
+}
+
+/** Finish stopped before the number was known: type the number once the crew tells it. */
+function StopRow({ at, crews, record, drop }: {
+  at: string; crews: { crew: Crew; d: CrewDiscipline }[]; drop: () => void
+  record: (e: Pick<Event, 'startNumber' | 'type'> & Partial<Event>) => void
+}) {
+  const [text, setText] = useState('')
+  function assign() {
+    const x = crews.find(c => c.crew.startNumber === Number(text))
+    if (!x?.d.start) return alert(`Posádka ${text} nemá start na tomto stanovišti.`)
+    if (x.d.status === 'finished' && !confirm(`Posádka ${text} už má cíl ${clockTime(x.d.finish!.timestamp)}. Přepsat na ${clockTime(at)}?`)) return
+    record({ startNumber: x.crew.startNumber!, type: 'finish', timestamp: at })
+    drop()
+  }
+  return (
+    <li className="crew-row">
+      <span className="result">{clockTime(at)}</span>
+      <form className="row" onSubmit={e => { e.preventDefault(); assign() }}>
+        <input type="number" min={1} list="on-course" placeholder="Číslo" required className="number" value={text} onChange={e => setText(e.target.value)} />
+        <button className="btn-primary">Zapsat cíl</button>
+        <button type="button" onClick={() => confirm(`Zahodit stopnutý čas ${clockTime(at)}?`) && drop()}>Zahodit</button>
+      </form>
+    </li>
+  )
 }
 
 /** Wait from the P5 card, m:ss. Every change is a new wait event; the latest counts. */

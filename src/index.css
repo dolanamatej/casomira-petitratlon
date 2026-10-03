@@ -1155,7 +1155,10 @@ tr.clash-row td:first-child {
     padding: 0;
   }
   .print-results {
+    width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
+    break-inside: avoid;
   }
   .print-results td,
   .print-results th {
@@ -1165,8 +1168,5 @@ tr.clash-row td:first-child {
   }
   .print-results h2 {
     margin: 1rem 0 0;
-  }
-  .print-results .category {
-    break-inside: avoid;
   }
 }
