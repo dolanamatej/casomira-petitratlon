@@ -2,3 +2,22 @@ body {
   font-family: system-ui, sans-serif;
   margin: 1rem;
 }
+nav button[aria-current='true'] {
+  font-weight: bold;
+}
+table {
+  border-collapse: collapse;
+}
+td, th {
+  padding: 0.2rem 0.4rem;
+  text-align: left;
+}
+.number {
+  width: 5em;
+}
+tr.unregistered {
+  color: #888;
+}
+[role='alert'] {
+  color: #b00;
+}
