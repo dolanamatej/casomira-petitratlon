@@ -21,3 +21,25 @@ tr.unregistered {
 [role='alert'] {
   color: #b00;
 }
+.clash {
+  outline: 2px solid #b00;
+}
+@media print {
+  .no-print {
+    display: none;
+  }
+  input {
+    border: none;
+    font: inherit;
+  }
+}
+.time {
+  width: 3.5em;
+}
+.drag-handle {
+  cursor: grab;
+  color: #888;
+}
+tr.drop-target {
+  outline: 2px dashed #36c;
+}
