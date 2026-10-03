@@ -1,7 +1,7 @@
 import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { crewDiscipline, type CrewDiscipline } from './domain/crewDiscipline.ts'
 import { clockTime, clockToIso, formatDuration, parseWait } from './domain/time.ts'
-import { CATEGORIES, type Category, type Crew, type Discipline, type Event } from './domain/types.ts'
+import { CATEGORIES, DISCIPLINE_NAME, type Category, type Crew, type Discipline, type Event } from './domain/types.ts'
 import type { AppState } from './store.ts'
 
 interface Props {
@@ -20,7 +20,7 @@ export function TimingScreen({ state, setState }: Props) {
         <h1>Měření – vyberte stanoviště</h1>
         {(['P5', 'C2'] as const).map(d => (
           <button key={d} className="big" onClick={() => setState(s => ({ ...s, discipline: d }))}>
-            {d === 'P5' ? 'Pramice (P5)' : 'Kánoe (C2)'}
+            {DISCIPLINE_NAME[d]}
           </button>
         ))}
       </section>
@@ -74,7 +74,7 @@ function Station({ discipline, state, setState }: Props & { discipline: Discipli
   return (
     <section>
       <h1>
-        Měření {discipline === 'P5' ? 'pramice (P5)' : 'kánoe (C2)'}{' '}
+        Měření {DISCIPLINE_NAME[discipline]}{' '}
         <small><button onClick={() => confirm('Změnit stanoviště tohoto notebooku?') && setState(s => ({ ...s, discipline: undefined }))}>změnit</button></small>
       </h1>
       <div className="clock">{new Date(now).toTimeString().slice(0, 8)}</div>

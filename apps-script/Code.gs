@@ -1,30 +1,43 @@
-// Backup endpoint for the timing app. Deploy as Web app:
-// Execute as: Me, Who has access: Anyone. Set Script property TOKEN.
-// Standalone script (the sheet lives on a shared drive): set Script property SHEET_ID.
+// Backup endpoint for the timing app. Standalone project (the sheet lives on a
+// shared drive), deployed as Web app: Execute as: Me, Who has access: Anyone.
+// Script properties: TOKEN, SHEET_ID. After a code change: Manage deployments → New version.
 // The app sends JSON as text/plain (simple request, no CORS preflight).
 
 const EVENT_COLUMNS = ['id', 'startNumber', 'discipline', 'type', 'timestamp',
   'waitSeconds', 'voidsEventId', 'deviceId', 'createdAt'];
+const CREW_COLUMNS = ['startNumber', 'category', 'crewName', 'helmsman', 'club',
+  'plannedStartP5', 'plannedStartC2', 'paid'];
 
-// Each discipline owns only its columns in the human-readable časovka sheet.
+// časovka layout: A category header, B start number, C club, D crew, E helmsman,
+// F–I P5 (start, finish, wait, result), J–L C2 (start, finish, result), M total, N rank.
+// Each discipline owns only its columns.
+const CASOVKA_SHEET = 'časovka';
 const CASOVKA_COLUMNS = {
   P5: { start: 'F', finish: 'G', wait: 'H' },
   C2: { start: 'J', finish: 'K' },
 };
-const START_NUMBER_COLUMN = 2; // B
-const CASOVKA_SHEET = 'časovka';
+const RESULT_FORMULA_COLUMN = 9; // I: every data row has the P5 result formula
 
 function doPost(e) {
   const body = JSON.parse(e.postData.contents);
-  if (body.token !== PropertiesService.getScriptProperties().getProperty('TOKEN')) {
-    return json({ ok: false, error: 'bad token' });
-  }
+  if (body.token !== prop('TOKEN')) return json({ ok: false, error: 'bad token' });
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    const added = appendEvents(body.events || []);
-    const written = writeCasovka(body.casovka || []);
-    return json({ ok: true, added, written });
+    const ss = SpreadsheetApp.openById(prop('SHEET_ID'));
+    const added = appendEvents(ss, body.events || []);
+    const crews = body.crews || [];
+    upsertCrews(ss, crews);
+    // časovka problems (missing block, no free row) must not block the backup itself
+    const warnings = [];
+    const attempt = fn => { try { fn(); } catch (err) { warnings.push(String(err.message || err)); } };
+    let casovka;
+    attempt(() => { casovka = new Casovka(ss); });
+    if (casovka) {
+      crews.forEach(c => attempt(() => casovka.writeIdentity(c)));
+      (body.casovka || []).forEach(u => attempt(() => casovka.writeCells(u)));
+    }
+    return json({ ok: true, added, warnings });
   } catch (err) {
     return json({ ok: false, error: String(err) });
   } finally {
@@ -33,17 +46,13 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  if (e.parameter.token !== PropertiesService.getScriptProperties().getProperty('TOKEN')) {
-    return json({ ok: false, error: 'bad token' });
-  }
-  const rows = sheet('events').getDataRange().getValues().slice(1);
-  const events = rows.map(r => Object.fromEntries(EVENT_COLUMNS.map((c, i) => [c, r[i]])));
-  return json({ ok: true, events });
+  if (e.parameter.token !== prop('TOKEN')) return json({ ok: false, error: 'bad token' });
+  const ss = SpreadsheetApp.openById(prop('SHEET_ID'));
+  return json({ ok: true, events: readRows(ss, 'events', EVENT_COLUMNS), crews: readRows(ss, 'crews', CREW_COLUMNS) });
 }
 
-function appendEvents(events) {
-  const sh = sheet('events');
-  if (sh.getLastRow() === 0) sh.appendRow(EVENT_COLUMNS);
+function appendEvents(ss, events) {
+  const sh = table(ss, 'events', EVENT_COLUMNS);
   const known = new Set(sh.getRange(1, 1, sh.getLastRow(), 1).getValues().flat());
   const fresh = events.filter(ev => !known.has(ev.id) && known.add(ev.id));
   if (fresh.length) {
@@ -53,33 +62,101 @@ function appendEvents(events) {
   return fresh.length;
 }
 
-// ponytail: only updates rows that already carry the start number;
-// claiming a free row for an extra crew comes with the real časovka layout.
-function writeCasovka(cells) {
-  if (!cells.length) return 0;
-  // never auto-create časovka: a typo in the tab name must fail loudly
-  const sh = SpreadsheetApp.openById(sheetId()).getSheetByName(CASOVKA_SHEET);
-  if (!sh) throw new Error('missing sheet ' + CASOVKA_SHEET);
-  // compare as strings: a number typed by a human may be stored as text
-  const numbers = sh.getRange(1, START_NUMBER_COLUMN, sh.getLastRow(), 1).getValues().flat().map(String);
-  let written = 0;
-  for (const c of cells) {
-    const col = (CASOVKA_COLUMNS[c.discipline] || {})[c.field];
-    const row = numbers.indexOf(String(c.startNumber)) + 1;
-    if (!col || !row) continue;
-    sh.getRange(col + row).setValue(c.value);
-    written++;
+function upsertCrews(ss, crews) {
+  if (!crews.length) return;
+  const sh = table(ss, 'crews', CREW_COLUMNS);
+  const numbers = sh.getRange(1, 1, sh.getLastRow(), 1).getValues().flat().map(String);
+  for (const c of crews) {
+    const row = CREW_COLUMNS.map(k => c[k] ?? '');
+    const i = numbers.indexOf(String(c.startNumber));
+    const at = i >= 0 ? i + 1 : (numbers.push(String(c.startNumber)), numbers.length);
+    sh.getRange(at, 1, 1, row.length).setValues([row]);
   }
-  return written;
 }
 
-function sheet(name) {
-  const ss = SpreadsheetApp.openById(sheetId());
-  return ss.getSheetByName(name) || ss.insertSheet(name);
+/** Rows of the human-readable sheet, found by start number or claimed in the category block. */
+class Casovka {
+  constructor(ss) {
+    this.sh = ss.getSheetByName(CASOVKA_SHEET);
+    // never auto-create časovka: a typo in the tab name must fail loudly
+    if (!this.sh) throw new Error('missing sheet ' + CASOVKA_SHEET);
+    const n = this.sh.getLastRow();
+    this.a = this.sh.getRange(1, 1, n, 1).getValues().flat().map(v => String(v).trim().toLocaleUpperCase());
+    // compare as strings: a number typed by a human may be stored as text
+    this.b = this.sh.getRange(1, 2, n, 1).getValues().flat().map(String);
+    this.formulas = this.sh.getRange(1, RESULT_FORMULA_COLUMN, n, 1).getFormulas().flat();
+  }
+
+  row(startNumber, category) {
+    const found = this.b.indexOf(String(startNumber));
+    if (found >= 0) return found + 1;
+    const header = this.a.indexOf(String(category).toLocaleUpperCase());
+    if (header < 0) throw new Error('časovka: chybí blok kategorie ' + category);
+    for (let i = header + 1; i < this.a.length && !this.a[i]; i++) {
+      if (!this.b[i] && this.formulas[i]) {
+        this.b[i] = String(startNumber);
+        this.sh.getRange(i + 1, 2).setValue(startNumber);
+        return i + 1;
+      }
+    }
+    throw new Error('časovka: v bloku ' + category + ' není volný řádek');
+  }
+
+  writeIdentity(c) {
+    const r = this.row(c.startNumber, c.category);
+    this.sh.getRange(r, 3, 1, 3).setValues([[c.club || '', c.crewName || '', c.helmsman || '']]);
+  }
+
+  writeCells(u) {
+    const r = this.row(u.startNumber, u.category);
+    for (const [field, value] of Object.entries(u.cells)) {
+      const col = (CASOVKA_COLUMNS[u.discipline] || {})[field];
+      if (col) this.sh.getRange(col + r).setValue(value);
+    }
+  }
 }
 
-function sheetId() {
-  return PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+/**
+ * Wipes test data: events and crews rows, and the typed-in cells of časovka
+ * (formulas stay). Run by hand from the editor. Refuses unless the script
+ * property ALLOW_RESET is "yes": never set it on the live sheet.
+ */
+function resetTestData() {
+  if (prop('ALLOW_RESET') !== 'yes') throw new Error('ALLOW_RESET is not "yes"');
+  const ss = SpreadsheetApp.openById(prop('SHEET_ID'));
+  for (const name of ['events', 'crews']) {
+    const sh = ss.getSheetByName(name);
+    if (sh && sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
+  }
+  const sh = ss.getSheetByName(CASOVKA_SHEET);
+  const formulas = sh.getRange(1, RESULT_FORMULA_COLUMN, sh.getLastRow(), 1).getFormulas().flat();
+  formulas.forEach((f, i) => {
+    if (!f) return;
+    sh.getRange(i + 1, 2, 1, 7).clearContent(); // B–H: number, club, crew, helmsman, P5 start, finish, wait
+    sh.getRange(i + 1, 10, 1, 2).clearContent(); // J–K: C2 start, finish
+  });
+}
+
+/** Sheet with a header row; created on first use. Plain text, so "10:30" stays a string. */
+function table(ss, name, columns) {
+  let sh = ss.getSheetByName(name);
+  if (!sh) sh = ss.insertSheet(name);
+  if (sh.getLastRow() === 0) {
+    sh.getRange('A:Z').setNumberFormat('@');
+    sh.appendRow(columns);
+  }
+  return sh;
+}
+
+function readRows(ss, name, columns) {
+  const sh = ss.getSheetByName(name);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, columns.length).getValues()
+    .map(r => Object.fromEntries(columns.map((c, i) => [c, r[i]])));
+}
+
+function prop(name) {
+  return PropertiesService.getScriptProperties().getProperty(name);
 }
 
 function json(obj) {

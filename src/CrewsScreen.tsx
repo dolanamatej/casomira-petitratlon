@@ -11,8 +11,11 @@ interface Props {
 /** Import, registration (start numbers from the vests) and editing of crews. */
 export function CrewsScreen({ state, setState }: Props) {
   const [query, setQuery] = useState('')
+  const [club, setClub] = useState('')
   const [errors, setErrors] = useState<string[]>([])
   const registered = state.crews.filter(c => c.startNumber !== undefined).length
+  const paid = state.crews.filter(c => c.paid).length
+  const clubs = [...new Set(state.crews.map(c => c.club).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'cs'))
   const hasEvents = (n?: number) => n !== undefined && state.events.some(e => e.startNumber === n)
 
   const updateCrew = (i: number, patch: Partial<Crew>) =>
@@ -35,6 +38,7 @@ export function CrewsScreen({ state, setState }: Props) {
   const q = query.trim().toLowerCase()
   const visible = state.crews
     .map((crew, i) => ({ crew, i }))
+    .filter(({ crew }) => !club || crew.club === club)
     .filter(({ crew }) => !q || [crew.crewName, crew.helmsman, crew.club, String(crew.startNumber ?? '')].some(f => f.toLowerCase().includes(q)))
 
   return (
@@ -54,11 +58,15 @@ export function CrewsScreen({ state, setState }: Props) {
       {errors.length > 0 && <ul role="alert">{errors.map(e => <li key={e}>{e}</li>)}</ul>}
       <p>
         <input type="search" placeholder="Hledat posádku, kormidelníka, oddíl…" value={query} onChange={e => setQuery(e.target.value)} autoFocus />{' '}
-        Registrováno <strong>{registered}</strong> z {state.crews.length}
+        <select value={club} onChange={e => setClub(e.target.value)}>
+          <option value="">Všechny oddíly</option>
+          {clubs.map(c => <option key={c} value={c}>{c} ({state.crews.filter(x => x.club === c).length})</option>)}
+        </select>{' '}
+        Registrováno <strong>{registered}</strong> z {state.crews.length}, zaplaceno <strong>{paid}</strong>
       </p>
       <table>
         <thead>
-          <tr><th>Číslo</th><th>Kategorie</th><th>Posádka</th><th>Kormidelník</th><th>Oddíl</th></tr>
+          <tr><th>Číslo</th><th>Zaplaceno</th><th>Kategorie</th><th>Posádka</th><th>Kormidelník</th><th>Oddíl</th></tr>
         </thead>
         <tbody>
           {visible.map(({ crew, i }) => (
@@ -71,6 +79,7 @@ export function CrewsScreen({ state, setState }: Props) {
                   onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
                 />
               </td>
+              <td><input type="checkbox" aria-label="Zaplaceno" checked={!!crew.paid} onChange={e => updateCrew(i, { paid: e.target.checked })} /></td>
               <td>
                 <select value={crew.category} onChange={e => updateCrew(i, { category: e.target.value as Category })}>
                   {CATEGORIES.map(c => <option key={c}>{c}</option>)}

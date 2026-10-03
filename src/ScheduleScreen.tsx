@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import { generateSchedule, helmsmanClashes, scheduleStats } from './domain/schedule.ts'
-import type { Crew, Discipline } from './domain/types.ts'
+import { DISCIPLINE_NAME, type Crew, type Discipline } from './domain/types.ts'
 import type { AppState } from './store.ts'
 
 interface Props {
@@ -81,10 +81,10 @@ export function ScheduleScreen({ state, setState }: Props) {
         if (!rows.length || (printing && printing !== d)) return null
         return (
           <div key={d} className="station">
-            <h2>Startovka {d === 'P5' ? 'pramice (P5)' : 'kánoe (C2)'} <button className="no-print" onClick={() => print(d)}>Tisk</button></h2>
+            <h2>Startovka {DISCIPLINE_NAME[d]} <button className="no-print" onClick={() => print(d)}>Tisk</button></h2>
             <table>
               <thead>
-                <tr>{d === 'P5' && <th className="no-print" />}<th>Plán</th><th>Číslo</th><th>Kategorie</th><th>Posádka</th><th>Kormidelník</th><th>Oddíl</th></tr>
+                <tr>{d === 'P5' && <th className="no-print" />}<th>Start</th><th>Číslo</th><th>Kategorie</th><th>Posádka</th><th>Kormidelník</th><th>Oddíl</th></tr>
               </thead>
               <tbody>
                 {rows.map(c => (

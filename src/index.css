@@ -24,7 +24,14 @@ tr.unregistered {
 .clash {
   outline: 2px solid #b00;
 }
+/* zero page margin drops the browser's own header and footer (URL, date) */
+@page {
+  margin: 0;
+}
 @media print {
+  body {
+    margin: 1.5cm;
+  }
   .no-print {
     display: none;
   }
@@ -92,6 +99,10 @@ li.voided {
   border-bottom: 1px solid #ddd;
   font-variant-numeric: tabular-nums;
 }
+.results h2 {
+  margin: 1rem 0 0;
+  text-align: left;
+}
 @media print {
   .category {
     break-inside: avoid;
@@ -102,4 +113,14 @@ li.voided {
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+}
+nav .badge {
+  float: right;
+}
+.badge.ok {
+  color: #2a7;
+}
+.badge.warn {
+  color: white;
+  background: #c33;
 }

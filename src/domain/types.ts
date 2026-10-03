@@ -1,4 +1,6 @@
 export type Discipline = 'P5' | 'C2'
+/** What people see; 'P5' stays the code in data and the sheet's event log. */
+export const DISCIPLINE_NAME: Record<Discipline, string> = { P5: 'pramice (P550)', C2: 'kánoe (C2)' }
 export type EventType = 'start' | 'finish' | 'wait' | 'dnf' | 'void'
 
 export interface Event {
@@ -25,6 +27,8 @@ export interface Crew {
   crewName: string
   helmsman: string
   club: string
+  /** Entry fee paid, ticked at registration. */
+  paid?: boolean
   /** "HH:MM" from the schedule, orientation only */
   plannedStartP5?: string
   plannedStartC2?: string

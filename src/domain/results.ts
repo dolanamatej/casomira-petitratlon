@@ -8,8 +8,9 @@ export interface ResultRow {
   c2: CrewDiscipline
   /** Only when both disciplines are finished. */
   total?: number
-  /** Shared on equal totals (2., 2., 4.); missing for crews without total. */
+  /** Equal totals share a place shown as rank–rankTo (2.–5.), the next crew is 6. Missing without total. */
   rank?: number
+  rankTo?: number
 }
 
 export function computeResults(crews: Crew[], events: Event[]): { category: Category; rows: ResultRow[] }[] {
@@ -25,7 +26,9 @@ export function computeResults(crews: Crew[], events: Event[]): { category: Cate
     const inCategory = rows.filter(r => r.crew.category === category)
     const totals = inCategory.flatMap(r => (r.total === undefined ? [] : [r.total]))
     for (const r of inCategory) {
-      if (r.total !== undefined) r.rank = 1 + totals.filter(t => t < r.total!).length
+      if (r.total === undefined) continue
+      r.rank = 1 + totals.filter(t => t < r.total!).length
+      r.rankTo = r.rank + totals.filter(t => t === r.total).length - 1
     }
     // unranked crews go last, by start number
     inCategory.sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity) || a.startNumber - b.startNumber)

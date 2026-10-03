@@ -6,7 +6,7 @@ Pojmy používané v tomto dokumentu jsou definované v [CONTEXT.md](CONTEXT.md)
 
 ## Cíl a rozsah
 
-Appka měří dvoudílný závod (pramice P5 + kánoe C2) a vyhodnotí kategorie podle součtu časů. Běží v prohlížeči na notebooku, funguje bez internetu a vše zálohuje do Google tabulky. Když appka selže, převezme měření člověk přímo v tabulce (nouzový režim), takže závod kvůli appce nikdy neskončí.
+Appka měří dvoudílný závod (pramice P550 + kánoe C2) a vyhodnotí kategorie podle součtu časů. Běží v prohlížeči na notebooku, funguje bez internetu a vše zálohuje do Google tabulky. Když appka selže, převezme měření člověk přímo v tabulce (nouzový režim), takže závod kvůli appce nikdy neskončí.
 
 **MVP (musí být hotové do závodu):**
 
@@ -30,8 +30,8 @@ Jeden z notebooků je **hlavní**: běží na něm registrace, generování star
 1. **Předem:** hlavní notebook načte CSV s přihlášenými posádkami.
 2. **Registrace (do 10:00):** u každé posádky, která opravdu přijela, registrátor opíše do appky číslo z fyzické vesty. Appka hlídá jen to, aby se číslo neopakovalo. Při registraci jde opravit údaje posádky (jméno, kormidelník, kategorie).
 3. **10:00–10:30:** hlavní notebook vygeneruje startovku jen z registrovaných posádek, obsluha ji případně upraví a vytiskne. Appka odešle posádky a startovku do tabulky a založí list `časovka`. Druhý notebook si data stáhne z tabulky, nebo je načte ze souboru JSON.
-4. **Na stanovišti:** obsluha vybere svou disciplínu (P5 nebo C2). Posádky startují po jedné tlačítkem Start, které zapíše skutečný čas stisku. Čas ve startovce je jen orientační.
-5. **Při dojetí:** tlačítko Cíl u dané posádky. Na P5 obsluha opíše čekačku z kartičky posádky.
+4. **Na stanovišti:** obsluha vybere svou disciplínu (P550 nebo C2). Posádky startují po jedné tlačítkem Start, které zapíše skutečný čas stisku. Čas ve startovce je jen orientační.
+5. **Při dojetí:** tlačítko Cíl u dané posádky. Na P550 obsluha opíše čekačku z kartičky posádky.
 6. **Průběžně:** každá událost se uloží lokálně a odešle do tabulky, jakmile je signál.
 7. **Po závodě:** hlavní notebook stáhne události druhé disciplíny (z tabulky, nebo ze souboru) a vygeneruje výsledovku.
 
@@ -56,7 +56,7 @@ OPEN,Victoria,Filip,Lososi
 | `Crew` | `startNumber`, `category`, `crewName`, `helmsman`, `club`, `plannedStartP5`, `plannedStartC2` | Přihlášená posádka má `startNumber` prázdné. Plánované starty jsou orientační čas ze startovky; posádka navíc je nemá. Posádku navíc lze přidat i během závodu. |
 | `Event` | `id` (UUID), `startNumber`, `discipline` (`P5`/`C2`), `type`, `timestamp`, `waitSeconds`, `voidsEventId`, `deviceId`, `createdAt` | Nikdy se nemaže ani nepřepisuje. |
 
-**Typy událostí:** `start`, `finish`, `wait` (čekačka v sekundách, jen P5), `dnf`, `void` (ruší jinou událost).
+**Typy událostí:** `start`, `finish`, `wait` (čekačka v sekundách, jen P550), `dnf`, `void` (ruší jinou událost).
 
 **Pravidla:**
 
@@ -69,7 +69,7 @@ OPEN,Victoria,Filip,Lososi
 
 Startovka vzniká až po registraci, jen z posádek se startovním číslem.
 
-**Pořadí:** na P5 se startuje od nejpomalejší kategorie: Žabičky → Vlčata → Skautky → Skauti → OPEN, uvnitř kategorie podle startovního čísla. Pomalé posádky tak jedou dlouhou pramici, dokud je trať prázdná, a závod nekončí čekáním na ně.
+**Pořadí:** na P550 se startuje od nejpomalejší kategorie: Žabičky → Vlčata → Skautky → Skauti → OPEN, uvnitř kategorie podle startovního čísla. Pomalé posádky tak jedou dlouhou pramici, dokud je trať prázdná, a závod nekončí čekáním na ně.
 
 **Algoritmus:** každé stanoviště má N slotů po sobě. Posádka ve slotu `i` na pramici dostane na kánoi slot `(i + ceil(N/2)) mod N`. První (pomalejší) polovina jede nejdřív pramici, druhá nejdřív kánoi, a na žádném stanovišti nevzniká díra.
 
@@ -79,7 +79,7 @@ Startovka vzniká až po registraci, jen z posádek se startovním číslem.
 | Rozestup startů | 8 min | rozhodnutí, viz níže |
 | Orientační limit lodí na trati | 4 kánoe, 4 pramice | zadání |
 | Min. pauza mezi disciplínami | 30 min | návrh |
-| Typická / nejdelší jízda P5 | 31 / 47 min | loni (medián / maximum) |
+| Typická / nejdelší jízda P550 | 31 / 47 min | loni (medián / maximum) |
 | Typická / nejdelší jízda C2 | 14 / 22 min | loni (medián / maximum) |
 
 **Rozestup jde nastavit při generování.** Formulář nabídne 8 minut jako doporučení a pro skutečný počet posádek N u zadané hodnoty hned ukáže:
@@ -113,7 +113,7 @@ Appka má šest obrazovek; nejdůležitější je Měření, která musí být o
 | Posádky | Import CSV, kontrola načtených dat, ruční přidání a úprava posádky. |
 | Registrace | Seznam přihlášených posádek s vyhledáváním. U každé zadání startovního čísla z vesty a případná oprava údajů. Přehled, kolik posádek je registrováno. |
 | Startovka | Nastavení parametrů s náhledem délky závodu, vygenerování, ruční úprava pořadí, tisk po stanovištích. |
-| Měření | Volba disciplíny. Seznam posádek v pořadí startovky ve třech skupinách: čeká, na trati (s běžícím časem), dojela. Ukazatel „na trati: X/4“. Velká tlačítka Start a Cíl, na P5 zadání čekačky, oprava času, DNF, přidání posádky navíc. |
+| Měření | Volba disciplíny. Seznam posádek v pořadí startovky ve třech skupinách: čeká, na trati (s běžícím časem), dojela. Ukazatel „na trati: X/4“. Velká tlačítka Start a Cíl, na P550 zadání čekačky, oprava času, DNF, přidání posádky navíc. |
 | Výsledky | Tabulka po kategoriích, pořadí, časy obou disciplín, tisk. |
 | Synchronizace | Stav zálohy (kolik událostí čeká na odeslání), stažení dat z tabulky, export/import JSON, obnova. |
 
@@ -121,7 +121,7 @@ Appka má šest obrazovek; nejdůležitější je Měření, která musí být o
 
 - Cíl jde zapsat jen posádce, která je na trati.
 - Tlačítko Zpět vrátí poslední akci. V detailu posádky jde zrušit kteroukoli její starší událost. Obojí vytvoří událost `void`.
-- Po stisku Cíl na P5 se u posádky objeví pole pro čekačku (`m:ss`). Prázdné pole znamená 0 a hodnotu jde později opravit.
+- Po stisku Cíl na P550 se u posádky objeví pole pro čekačku (`m:ss`). Prázdné pole znamená 0 a hodnotu jde později opravit.
 - Posádka s DNF zmizí ze skupiny „na trati“.
 - Ukazatel lodí na trati se při překročení limitu zvýrazní, ale Start nezablokuje.
 - Stav zálohy je vidět stále, ne jen na obrazovce Synchronizace.
@@ -129,10 +129,10 @@ Appka má šest obrazovek; nejdůležitější je Měření, která musí být o
 
 ## Výpočet výsledků
 
-Čas P5 je cíl − start − čekačka, čas C2 je cíl − start a celkový čas je součet obou. Pořadí se určuje vzestupně podle celkového času v rámci kategorie.
+Čas P550 je cíl − start − čekačka, čas C2 je cíl − start a celkový čas je součet obou. Pořadí se určuje vzestupně podle celkového času v rámci kategorie.
 
 - Posádka bez dokončené disciplíny (DNF, chybějící čas) je na konci kategorie bez pořadí, se zkratkou místo času.
-- Shoda celkového času na sekundu znamená dělené místo (2., 2., 4.), bez dalšího kritéria.
+- Shoda celkového času na sekundu znamená sdílené místo zobrazené jako rozsah: čtyři posádky se stejným časem za první posádkou jsou všechny „2.–5.“, další je „6.“. Bez dalšího kritéria.
 - Sloučení kategorií s málo posádkami se v MVP řeší úpravou kategorie u posádek před vygenerováním výsledovky.
 
 **Test správnosti:** loňská data převedená na události musí dát stejné časy a pořadí jako loňská tabulka (například Vlčata: Sedmička 0:34:32, Dobyvatelé Jorsalu 0:37:26, Kladivouni 0:38:36).
@@ -145,9 +145,9 @@ Data jsou na třech místech: v prohlížeči notebooku, v Google tabulce a v ex
 
 - `crews`: jedna posádka na řádek včetně plánovaných startů. Slouží appce, ale je čitelný i pro lidi.
 - `events`: surový log událostí, jen pro appku.
-- `časovka`: čitelný list pro lidi v rozložení vzoru (`časovka_vzor.xlsx`), bloky po kategoriích v pořadí Žabičky, Vlčata, Skautky, Skauti, OPEN, jeden řádek na posádku, P5 i C2 na jednom řádku, časy jako běžné hodiny `hh:mm:ss`. Sloupce: A kategorie (nadpis bloku), B start. číslo, C oddíl, D posádka, E kormidelník, F–I pramice (start, cíl, čekačka, výsledek), J–L kánoe (start, cíl, výsledek), M celkový čas, N pořadí. Výsledek, celkový čas a pořadí počítají vzorce, takže časovka funguje i bez appky. Hlavní notebook ho založí po vygenerování startovky a v každém bloku nechá několik volných řádků pro posádky navíc.
+- `časovka`: čitelný list pro lidi v rozložení vzoru (`časovka_vzor.xlsx`), bloky po kategoriích v pořadí Žabičky, Vlčata, Skautky, Skauti, OPEN, jeden řádek na posádku, P550 i C2 na jednom řádku, časy jako běžné hodiny `hh:mm:ss`. Sloupce: A kategorie (nadpis bloku), B start. číslo, C oddíl, D posádka, E kormidelník, F–I pramice (start, cíl, čekačka, výsledek), J–L kánoe (start, cíl, výsledek), M celkový čas, N pořadí. Výsledek, celkový čas a pořadí počítají vzorce, takže časovka funguje i bez appky. Hlavní notebook ho založí po vygenerování startovky a v každém bloku nechá několik volných řádků pro posádky navíc.
 
-**Pravidlo pro časovku:** každá appka zapisuje jen sloupce své disciplíny (P5: F–H; C2: J–K) a řádek hledá podle startovního čísla. Do cizích sloupců nesahá. Když člověk převezme jednu disciplínu (nouzový režim), appka druhé disciplíny mu nic nepřepíše. Pokud startovní číslo v časovce chybí (posádka navíc), skript ho zapíše do prvního volného řádku bloku její kategorie.
+**Pravidlo pro časovku:** každá appka zapisuje jen sloupce své disciplíny (P550: F–H; C2: J–K) a řádek hledá podle startovního čísla. Do cizích sloupců nesahá. Když člověk převezme jednu disciplínu (nouzový režim), appka druhé disciplíny mu nic nepřepíše. Pokud startovní číslo v časovce chybí (posádka navíc), skript ho zapíše do prvního volného řádku bloku její kategorie.
 
 Appka do tabulky zapisuje přes malý Google Apps Script nasazený jako webová aplikace:
 
@@ -165,6 +165,10 @@ Appka do tabulky zapisuje přes malý Google Apps Script nasazený jako webová 
 2. Ve skriptu se změní vlastnost `SHEET_ID` na ostrou tabulku a `TOKEN` na nové heslo. Vlastnosti se čtou za běhu, takže nová verze nasazení ani nová URL nejsou potřeba.
 3. Nový token se zadá v nastavení appky na obou noteboocích.
 4. Test nasazení (POST a GET) proti ostré tabulce, pak smazat testovací řádky.
+
+**Kdo má pravdu o posádkách:** každý notebook si pamatuje, v jakém stavu posádky naposledy odeslal do tabulky nebo z ní stáhl. Posádky změněné od té doby automaticky odešle (tak se startovka z hlavního notebooku dostane do tabulky a posádky navíc ze stanovišť taky). Při stažení vyhrává tabulka, pokud notebook nemá vlastní neodeslanou změnu té posádky.
+
+**Časovka nesmí zablokovat zálohu:** když skript nemůže zapsat do časovky (chybí blok kategorie, není volný řádek), události i posádky se uloží a appka jen ukáže varování.
 
 **Přenos mezi notebooky** má dvě cesty:
 
