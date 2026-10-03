@@ -87,3 +87,19 @@ li.voided {
   text-decoration: line-through;
   color: #888;
 }
+.results td,
+.results th {
+  border-bottom: 1px solid #ddd;
+  font-variant-numeric: tabular-nums;
+}
+@media print {
+  .category {
+    break-inside: avoid;
+  }
+}
+.clock {
+  font-size: 4rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

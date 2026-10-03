@@ -77,6 +77,7 @@ function Station({ discipline, state, setState }: Props & { discipline: Discipli
         Měření {discipline === 'P5' ? 'pramice (P5)' : 'kánoe (C2)'}{' '}
         <small><button onClick={() => confirm('Změnit stanoviště tohoto notebooku?') && setState(s => ({ ...s, discipline: undefined }))}>změnit</button></small>
       </h1>
+      <div className="clock">{new Date(now).toTimeString().slice(0, 8)}</div>
       <p className="toolbar">
         <span className={onCourse.length > BOAT_LIMIT ? 'over-limit' : undefined}>Na trati: <strong>{onCourse.length}/{BOAT_LIMIT}</strong></span>
         <button onClick={undo} disabled={!lastAction}>↶ Zpět{lastAction && `: ${LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
