@@ -1,13 +1,15 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import type { BackupStatus } from './backup.ts'
 import { mergeRemote } from './domain/sync.ts'
-import type { AppState } from './store.ts'
+import { clockTime } from './domain/time.ts'
+import { DISCIPLINE_NAME } from './domain/types.ts'
+import { deviceLabel, type AppState } from './store.ts'
 
 interface Props {
   state: AppState
   setState: Dispatch<SetStateAction<AppState>>
   status: BackupStatus
-  push: () => Promise<void>
+  push: () => Promise<unknown>
   pull: () => Promise<unknown>
   resetStatus: () => void
 }
@@ -65,7 +67,7 @@ export function SyncScreen({ state, setState, status, push, pull, resetStatus }:
       </p>
       {!!status.casovkaWarnings?.length && (
         <div role="alert">
-          Data jsou zálohovaná, ale časovku se nepodařilo celou zapsat:
+          Data jsou zálohovaná, ale:
           <ul>{status.casovkaWarnings.map(w => <li key={w}>{w}</li>)}</ul>
         </div>
       )}
@@ -85,6 +87,33 @@ export function SyncScreen({ state, setState, status, push, pull, resetStatus }:
         </button>{' '}
         <small>Když v tabulce něco chybí nebo bylo smazané. Duplicity nevzniknou.</small>
       </p>
+
+      <h2>Stanoviště</h2>
+      <p>
+        <label>Název tohoto zařízení{' '}
+          <input defaultValue={state.deviceName} placeholder="např. Notebook Matěj" onBlur={e => {
+            const deviceName = e.currentTarget.value.trim()
+            setState(s => ({ ...s, deviceName }))
+          }} />
+        </label>{' '}
+        <small>Ostatní ho uvidí v přehledu níže.</small>
+      </p>
+      {state.stations.length ? (
+        <table>
+          <thead><tr><th>Stanoviště</th><th>Měří</th><th>Od</th><th>Naposledy</th></tr></thead>
+          <tbody>
+            {state.stations.map(s => (
+              <tr key={s.discipline}>
+                <td>{DISCIPLINE_NAME[s.discipline]}</td>
+                <td>{deviceLabel(s)}{s.deviceId === state.deviceId && <strong> (toto zařízení)</strong>}</td>
+                <td>{clockTime(s.since)}</td>
+                <td>{clockTime(s.lastSeen)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : <p>Zatím žádné stanoviště není v tabulce přiřazené.</p>}
+      <p><small>Stanoviště převezmete na obrazovce Měření. Přehled se obnovuje při každé synchronizaci.</small></p>
 
       <h2>Soubor</h2>
       <p>

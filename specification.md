@@ -170,6 +170,8 @@ Appka do tabulky zapisuje přes malý Google Apps Script nasazený jako webová 
 
 **Časovka nesmí zablokovat zálohu:** když skript nemůže zapsat do časovky (chybí blok kategorie, není volný řádek), události i posádky se uloží a appka jen ukáže varování.
 
+**Stanoviště a výpadek zařízení:** list `stations` v tabulce říká, které zařízení měří které stanoviště. První zařízení, které stanoviště měří, si ho zabere a při každé synchronizaci (nejméně každých 15 s) obnoví čas „naposledy“. Když zařízení vypadne, náhradní (notebook i tablet) na obrazovce Měření stanoviště **převezme**: zapíše se do tabulky jako vlastník a stáhne všechna data včetně startů posádek na trati. Původní zařízení po příštím spojení ukáže „Stanoviště převzalo jiné zařízení“ a zamkne Start, Cíl i opravy. Co mělo neodeslané, ještě odešle do `events` (jsou to skutečná zmáčknutí), ale do časovky zapisuje jen vlastník. Převzetí potřebuje signál.
+
 **Přenos mezi notebooky** má dvě cesty:
 
 1. Přes tabulku: tlačítko Stáhnout načte posádky (včetně startovky) a události a sloučí je (posádky podle startovního čísla, události podle `id`).
@@ -191,6 +193,7 @@ V repozitáři nesmí být žádná data ani tajemství; kód appky může být 
 
 - **Stack:** React + TypeScript + Vite, bez dalších knihoven: žádný router (pět záložek v jednom `useState`), žádný state manager ani UI kit, styly v obyčejném CSS. Appku udržuje jeden člověk.
 - **Úložiště v prohlížeči:** `localStorage`. Stačí na stovky událostí (jednotky kB) a je jednoduché.
+- **Tablet:** jako měřicí stanoviště funguje v prohlížeči (Chrome na Androidu, Safari na iPadu). Startovku s přetahováním dělat na notebooku, protože na dotykové obrazovce přetahování nemusí fungovat. Safari na iPadu smaže data stránky, když se appka 7 dní neotevře, proto data na iPad stáhnout až těsně před závodem.
 - **Hosting:** GitHub Pages s ručně psaným service workerem (cache-first, bez pluginu). Po prvním načtení appka naběhne i bez sítě. Záložní soubor HTML na disku nepomůže, protože z adresy `file://` nejsou vidět data uložená pod `https://`.
 
 ## Harmonogram

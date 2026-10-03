@@ -7,6 +7,8 @@ const EVENT_COLUMNS = ['id', 'startNumber', 'discipline', 'type', 'timestamp',
   'waitSeconds', 'voidsEventId', 'deviceId', 'createdAt'];
 const CREW_COLUMNS = ['startNumber', 'category', 'crewName', 'helmsman', 'club',
   'plannedStartP5', 'plannedStartC2', 'paid'];
+// which device times which station; only that device may write its časovka columns
+const STATION_COLUMNS = ['discipline', 'deviceId', 'deviceName', 'since', 'lastSeen'];
 
 // časovka layout: A category header, B start number, C club, D crew, E helmsman,
 // F–I P5 (start, finish, wait, result), J–L C2 (start, finish, result), M total, N rank.
@@ -22,10 +24,17 @@ function doPost(e) {
   const body = JSON.parse(e.postData.contents);
   if (body.token !== prop('TOKEN')) return json({ ok: false, error: 'bad token' });
   const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  // the app retries anyway; an answer beats Google's HTML error page
+  if (!lock.tryLock(25000)) return json({ ok: false, error: 'tabulka je zaneprázdněná, zkusím znovu' });
   try {
     const ss = SpreadsheetApp.openById(prop('SHEET_ID'));
+    const stations = updateStations(ss, body.station, body.takeover);
+    // events are always kept: they are real button presses, even from a replaced device
     const added = appendEvents(ss, body.events || []);
+    const ownsColumns = d => {
+      const owner = stations.find(s => s.discipline === d);
+      return !owner || (body.station && owner.deviceId === body.station.deviceId);
+    };
     const crews = body.crews || [];
     upsertCrews(ss, crews);
     // časovka problems (missing block, no free row) must not block the backup itself
@@ -35,9 +44,9 @@ function doPost(e) {
     attempt(() => { casovka = new Casovka(ss); });
     if (casovka) {
       crews.forEach(c => attempt(() => casovka.writeIdentity(c)));
-      (body.casovka || []).forEach(u => attempt(() => casovka.writeCells(u)));
+      (body.casovka || []).filter(u => ownsColumns(u.discipline)).forEach(u => attempt(() => casovka.writeCells(u)));
     }
-    return json({ ok: true, added, warnings });
+    return json({ ok: true, added, warnings, stations });
   } catch (err) {
     return json({ ok: false, error: String(err) });
   } finally {
@@ -48,7 +57,31 @@ function doPost(e) {
 function doGet(e) {
   if (e.parameter.token !== prop('TOKEN')) return json({ ok: false, error: 'bad token' });
   const ss = SpreadsheetApp.openById(prop('SHEET_ID'));
-  return json({ ok: true, events: readRows(ss, 'events', EVENT_COLUMNS), crews: readRows(ss, 'crews', CREW_COLUMNS) });
+  return json({
+    ok: true,
+    events: readRows(ss, 'events', EVENT_COLUMNS),
+    crews: readRows(ss, 'crews', CREW_COLUMNS),
+    stations: readRows(ss, 'stations', STATION_COLUMNS),
+  });
+}
+
+/**
+ * A station is claimed by the first device timing it. Later only a takeover
+ * moves it to another device; the owner just refreshes lastSeen.
+ */
+function updateStations(ss, station, takeover) {
+  if (station) {
+    const sh = table(ss, 'stations', STATION_COLUMNS);
+    const rows = readRows(ss, 'stations', STATION_COLUMNS);
+    const i = rows.findIndex(r => r.discipline === station.discipline);
+    const now = new Date().toISOString();
+    const owner = i >= 0 ? rows[i] : undefined;
+    let row;
+    if (!owner || takeover) row = [station.discipline, station.deviceId, station.deviceName || '', now, now];
+    else if (owner.deviceId === station.deviceId) row = [owner.discipline, owner.deviceId, station.deviceName || '', owner.since, now];
+    if (row) sh.getRange(i >= 0 ? i + 2 : sh.getLastRow() + 1, 1, 1, row.length).setValues([row]);
+  }
+  return readRows(ss, 'stations', STATION_COLUMNS);
 }
 
 function appendEvents(ss, events) {
@@ -124,7 +157,7 @@ class Casovka {
 function resetTestData() {
   if (prop('ALLOW_RESET') !== 'yes') throw new Error('ALLOW_RESET is not "yes"');
   const ss = SpreadsheetApp.openById(prop('SHEET_ID'));
-  for (const name of ['events', 'crews']) {
+  for (const name of ['events', 'crews', 'stations']) {
     const sh = ss.getSheetByName(name);
     if (sh && sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
   }

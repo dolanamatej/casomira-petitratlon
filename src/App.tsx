@@ -23,7 +23,7 @@ export default function App() {
       </nav>
       {tab === 'crews' && <CrewsScreen state={state} setState={setState} />}
       {tab === 'schedule' && <ScheduleScreen state={state} setState={setState} />}
-      {tab === 'timing' && <TimingScreen state={state} setState={setState} />}
+      {tab === 'timing' && <TimingScreen state={state} setState={setState} takeover={backup.takeover} claim={backup.claim} takingOver={backup.takingOver} />}
       {tab === 'results' && <ResultsScreen state={state} />}
       {tab === 'sync' && <SyncScreen state={state} setState={setState} {...backup} />}
     </>
@@ -35,7 +35,7 @@ function BackupBadge({ status, onClick }: { status: BackupStatus; onClick: () =>
   const [text, kind] = !status.configured
     ? ['Záloha nenastavena', 'warn']
     : status.pending === 0
-      ? status.casovkaWarnings?.length ? ['Záloha ✓, časovka ⚠', 'warn'] : ['Záloha ✓', 'ok']
+      ? status.casovkaWarnings?.length ? ['Záloha ✓, ale viz Synchronizace', 'warn'] : ['Záloha ✓', 'ok']
       : status.error
         ? [`Záloha: ${status.pending} neodesláno, bez spojení`, 'warn']
         : [`Záloha: odesílám ${status.pending}…`, 'ok']

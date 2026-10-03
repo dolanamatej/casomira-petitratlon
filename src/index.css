@@ -124,3 +124,14 @@ nav .badge {
   color: white;
   background: #c33;
 }
+fieldset.plain {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.locked {
+  background: #c33;
+  color: white;
+  padding: 1rem;
+  font-size: 1.2rem;
+}

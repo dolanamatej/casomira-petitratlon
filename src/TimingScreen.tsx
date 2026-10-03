@@ -2,34 +2,81 @@ import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction
 import { crewDiscipline, type CrewDiscipline } from './domain/crewDiscipline.ts'
 import { clockTime, clockToIso, formatDuration, parseWait } from './domain/time.ts'
 import { CATEGORIES, DISCIPLINE_NAME, type Category, type Crew, type Discipline, type Event } from './domain/types.ts'
-import type { AppState } from './store.ts'
+import { deviceLabel, type AppState, type StationOwner } from './store.ts'
 
 interface Props {
   state: AppState
   setState: Dispatch<SetStateAction<AppState>>
+  takeover: (discipline: Discipline) => Promise<void>
+  claim: (discipline: Discipline) => Promise<StationOwner | undefined>
+  /** Station being claimed or taken over right now: two requests to Google, 5–15 s. */
+  takingOver?: Discipline
+}
+
+async function confirmTakeover(state: AppState, d: Discipline, takeover: Props['takeover']) {
+  const owner = state.stations.find(s => s.discipline === d)
+  const who = owner ? `${deviceLabel(owner)} (naposledy ${clockTime(owner.lastSeen)})` : 'jiné zařízení'
+  if (!confirm(`Stanoviště ${DISCIPLINE_NAME[d]} teď měří ${who}. Převzít ho? To zařízení pak už nebude moct zapisovat.`)) return
+  try {
+    await takeover(d)
+  } catch (err) {
+    alert(`Převzetí se nepovedlo, je potřeba připojení k internetu a nastavená záloha.\n${err instanceof Error ? err.message : err}`)
+  }
 }
 
 const BOAT_LIMIT = 4
 const LABEL: Record<Event['type'], string> = { start: 'Start', finish: 'Cíl', wait: 'Čekačka', dnf: 'DNF', void: 'Zrušení' }
 
-export function TimingScreen({ state, setState }: Props) {
+/** Start timing a station only once the sheet confirms nobody else times it. */
+async function chooseStation(state: AppState, setState: Props['setState'], d: Discipline, claim: Props['claim'], takeover: Props['takeover']) {
+  if (!state.backup.url) return setState(s => ({ ...s, discipline: d })) // no sheet, nothing to check against
+  try {
+    const owner = await claim(d)
+    if (!owner) setState(s => ({ ...s, discipline: d })) // script too old to know stations
+    else if (owner.deviceId !== state.deviceId) await confirmTakeover({ ...state, stations: [owner] }, d, takeover)
+  } catch {
+    if (confirm(`Stanoviště ${DISCIPLINE_NAME[d]} se nepodařilo ověřit v tabulce (bez signálu?). Měřit i tak? Pokud ho měří jiné zařízení, budou zapisovat obě, dokud se nespojí.`)) {
+      setState(s => ({ ...s, discipline: d }))
+    }
+  }
+}
+
+export function TimingScreen({ state, setState, takeover, claim, takingOver }: Props) {
+  if (takingOver) {
+    return (
+      <section role="status">
+        <h1>Ověřuji stanoviště {DISCIPLINE_NAME[takingOver]} v tabulce…</h1>
+        <p>Aby stejnou trať neměřila dvě zařízení. Obvykle 5–15 s, při slabém signálu déle.</p>
+      </section>
+    )
+  }
   const discipline = state.discipline
   if (!discipline) {
     return (
       <section>
         <h1>Měření – vyberte stanoviště</h1>
-        {(['P5', 'C2'] as const).map(d => (
-          <button key={d} className="big" onClick={() => setState(s => ({ ...s, discipline: d }))}>
-            {DISCIPLINE_NAME[d]}
-          </button>
-        ))}
+        {(['P5', 'C2'] as const).map(d => {
+          const owner = state.stations.find(s => s.discipline === d)
+          const other = owner && owner.deviceId !== state.deviceId
+          return (
+            <p key={d}>
+              <button className="big" onClick={() => (other ? confirmTakeover(state, d, takeover) : chooseStation(state, setState, d, claim, takeover))}>
+                {DISCIPLINE_NAME[d]}
+              </button>
+              {other && <> měří {deviceLabel(owner)}, naposledy {clockTime(owner.lastSeen)}</>}
+            </p>
+          )
+        })}
       </section>
     )
   }
-  return <Station discipline={discipline} state={state} setState={setState} />
+  return <Station discipline={discipline} state={state} setState={setState} takeover={takeover} claim={claim} />
 }
 
-function Station({ discipline, state, setState }: Props & { discipline: Discipline }) {
+function Station({ discipline, state, setState, takeover }: Props & { discipline: Discipline }) {
+  const owner = state.stations.find(s => s.discipline === discipline)
+  // another device took the station over: two devices must never time the same course
+  const locked = !!owner && owner.deviceId !== state.deviceId
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)
@@ -78,6 +125,14 @@ function Station({ discipline, state, setState }: Props & { discipline: Discipli
         <small><button onClick={() => confirm('Změnit stanoviště tohoto notebooku?') && setState(s => ({ ...s, discipline: undefined }))}>změnit</button></small>
       </h1>
       <div className="clock">{new Date(now).toTimeString().slice(0, 8)}</div>
+      {locked && (
+        <div role="alert" className="locked">
+          <strong>Stanoviště převzalo jiné zařízení: {deviceLabel(owner)}</strong> (naposledy {clockTime(owner.lastSeen)}).
+          Tady už nejde zapisovat.{' '}
+          <button onClick={() => confirmTakeover(state, discipline, takeover)}>Převzít zpět</button>
+        </div>
+      )}
+      <fieldset disabled={locked} className="plain">
       <p className="toolbar">
         <span className={onCourse.length > BOAT_LIMIT ? 'over-limit' : undefined}>Na trati: <strong>{onCourse.length}/{BOAT_LIMIT}</strong></span>
         <button onClick={undo} disabled={!lastAction}>↶ Zpět{lastAction && `: ${LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
@@ -110,6 +165,7 @@ function Station({ discipline, state, setState }: Props & { discipline: Discipli
             </>,
         ))}
       </tbody></table>
+      </fieldset>
     </section>
   )
 }
