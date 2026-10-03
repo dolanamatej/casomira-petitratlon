@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import { importCrews } from './domain/csv.ts'
 import { CATEGORIES, type Category, type Crew } from './domain/types.ts'
+import { WarningIcon } from './icons.tsx'
 import type { AppState } from './store.ts'
 
 interface Props {
@@ -43,55 +44,71 @@ export function CrewsScreen({ state, setState }: Props) {
 
   return (
     <section>
-      <h1>Posádky</h1>
-      <p>
-        {/* re-import would drop start numbers, so only before registration starts */}
-        {registered === 0 && (
-          <label>
-            Import CSV <input type="file" accept=".csv,text/csv" onChange={e => e.target.files?.[0] && onImport(e.target.files[0])} />
-          </label>
-        )}{' '}
-        <button onClick={() => setState(s => ({ ...s, crews: [...s.crews, { category: 'OPEN', crewName: '', helmsman: '', club: '' }] }))}>
-          Přidat posádku
-        </button>
-      </p>
-      {errors.length > 0 && <ul role="alert">{errors.map(e => <li key={e}>{e}</li>)}</ul>}
-      <p>
-        <input type="search" placeholder="Hledat posádku, kormidelníka, oddíl…" value={query} onChange={e => setQuery(e.target.value)} autoFocus />{' '}
-        <select value={club} onChange={e => setClub(e.target.value)}>
+      <div className="page-head">
+        <h1>Posádky</h1>
+        <div className="counters">
+          <div className="counter">Registrováno <strong>{registered}</strong> z {state.crews.length}</div>
+          <div className="counter">Zaplaceno <strong>{paid}</strong> z {state.crews.length}</div>
+        </div>
+      </div>
+      <div className="card toolbar">
+        <input type="search" aria-label="Hledat" placeholder="Hledat posádku, kormidelníka, oddíl…" value={query} onChange={e => setQuery(e.target.value)} autoFocus />
+        <select aria-label="Oddíl" value={club} onChange={e => setClub(e.target.value)}>
           <option value="">Všechny oddíly</option>
           {clubs.map(c => <option key={c} value={c}>{c} ({state.crews.filter(x => x.club === c).length})</option>)}
-        </select>{' '}
-        Registrováno <strong>{registered}</strong> z {state.crews.length}, zaplaceno <strong>{paid}</strong>
-      </p>
-      <table>
-        <thead>
-          <tr><th>Číslo</th><th>Zaplaceno</th><th>Kategorie</th><th>Posádka</th><th>Kormidelník</th><th>Oddíl</th></tr>
-        </thead>
-        <tbody>
-          {visible.map(({ crew, i }) => (
-            <tr key={i} className={crew.startNumber === undefined ? 'unregistered' : undefined}>
-              <td>
-                <input
-                  type="number" min={1} className="number" defaultValue={crew.startNumber}
-                  disabled={hasEvents(crew.startNumber)} title={hasEvents(crew.startNumber) ? 'Posádka už má události, číslo nejde změnit' : undefined}
-                  onBlur={e => onNumber(i, e.currentTarget)}
-                  onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
-                />
-              </td>
-              <td><input type="checkbox" aria-label="Zaplaceno" checked={!!crew.paid} onChange={e => updateCrew(i, { paid: e.target.checked })} /></td>
-              <td>
-                <select value={crew.category} onChange={e => updateCrew(i, { category: e.target.value as Category })}>
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                </select>
-              </td>
-              <td><input value={crew.crewName} onChange={e => updateCrew(i, { crewName: e.target.value })} /></td>
-              <td><input value={crew.helmsman} onChange={e => updateCrew(i, { helmsman: e.target.value })} /></td>
-              <td><input value={crew.club} onChange={e => updateCrew(i, { club: e.target.value })} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        </select>
+        {/* re-import would drop start numbers, so only before registration starts */}
+        {registered === 0 && (
+          <label className="file-button">
+            Import CSV <input type="file" accept=".csv,text/csv" onChange={e => e.target.files?.[0] && onImport(e.target.files[0])} />
+          </label>
+        )}
+        <button className="btn-primary" onClick={() => setState(s => ({ ...s, crews: [...s.crews, { category: 'OPEN', crewName: '', helmsman: '', club: '' }] }))}>
+          Přidat posádku
+        </button>
+      </div>
+      {errors.length > 0 && (
+        <div role="alert" className="alert errors">
+          <WarningIcon />
+          <div><div className="alert-title">Import CSV se nepovedl</div><ul>{errors.map(e => <li key={e}>{e}</li>)}</ul></div>
+        </div>
+      )}
+      <div className="card table-card">
+        <table className="table crews-table">
+          <colgroup><col style={{ width: 92 }} /><col style={{ width: 130 }} /><col style={{ width: 150 }} /><col style={{ width: '28%' }} /><col style={{ width: '20%' }} /><col /></colgroup>
+          <thead>
+            <tr><th>Číslo</th><th>Zaplaceno</th><th className="inset">Kategorie</th><th className="inset">Posádka</th><th className="inset">Kormidelník</th><th className="inset">Oddíl</th></tr>
+          </thead>
+          <tbody>
+            {visible.map(({ crew, i }) => (
+              <tr key={i} className={crew.startNumber === undefined ? 'unregistered' : undefined}>
+                <td>
+                  <input
+                    type="number" min={1} className="bib" defaultValue={crew.startNumber} placeholder=" " aria-label="Startovní číslo"
+                    disabled={hasEvents(crew.startNumber)} title={hasEvents(crew.startNumber) ? 'Posádka už má události, číslo nejde změnit' : 'Bez čísla: posádka ještě není registrovaná'}
+                    onBlur={e => onNumber(i, e.currentTarget)}
+                    onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                  />
+                </td>
+                <td>
+                  <label className={crew.paid ? 'paid yes' : 'paid'}>
+                    <input type="checkbox" aria-label="Zaplaceno" checked={!!crew.paid} onChange={e => updateCrew(i, { paid: e.target.checked })} />
+                    {crew.paid ? 'ano' : 'ne'}
+                  </label>
+                </td>
+                <td className="secondary">
+                  <select className="cell-input" aria-label="Kategorie" value={crew.category} onChange={e => updateCrew(i, { category: e.target.value as Category })}>
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </td>
+                <td className="crew-name-cell"><input className="cell-input" aria-label="Posádka" value={crew.crewName} onChange={e => updateCrew(i, { crewName: e.target.value })} /></td>
+                <td className="secondary"><input className="cell-input" aria-label="Kormidelník" value={crew.helmsman} onChange={e => updateCrew(i, { helmsman: e.target.value })} /></td>
+                <td className="secondary"><input className="cell-input" aria-label="Oddíl" value={crew.club} onChange={e => updateCrew(i, { club: e.target.value })} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }

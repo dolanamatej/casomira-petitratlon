@@ -2,6 +2,7 @@ import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction
 import { crewDiscipline, type CrewDiscipline } from './domain/crewDiscipline.ts'
 import { clockTime, clockToIso, formatDuration, parseWait } from './domain/time.ts'
 import { CATEGORIES, DISCIPLINE_NAME, type Category, type Crew, type Discipline, type Event } from './domain/types.ts'
+import { WarningIcon } from './icons.tsx'
 import { deviceLabel, type AppState, type StationOwner } from './store.ts'
 
 interface Props {
@@ -25,6 +26,7 @@ async function confirmTakeover(state: AppState, d: Discipline, takeover: Props['
 }
 
 const BOAT_LIMIT = 4
+const STATION_TITLE: Record<Discipline, string> = { P5: 'Pramice P550', C2: 'Kánoe C2' }
 const LABEL: Record<Event['type'], string> = { start: 'Start', finish: 'Cíl', wait: 'Čekačka', dnf: 'DNF', void: 'Zrušení' }
 
 /** Start timing a station only once the sheet confirms nobody else times it. */
@@ -44,26 +46,26 @@ async function chooseStation(state: AppState, setState: Props['setState'], d: Di
 export function TimingScreen({ state, setState, takeover, claim, takingOver }: Props) {
   if (takingOver) {
     return (
-      <section role="status">
+      <section role="status" className="card station-pick">
         <h1>Ověřuji stanoviště {DISCIPLINE_NAME[takingOver]} v tabulce…</h1>
-        <p>Aby stejnou trať neměřila dvě zařízení. Obvykle 5–15 s, při slabém signálu déle.</p>
+        <p className="muted">Aby stejnou trať neměřila dvě zařízení. Obvykle 5–15 s, při slabém signálu déle.</p>
       </section>
     )
   }
   const discipline = state.discipline
   if (!discipline) {
     return (
-      <section>
+      <section className="card station-pick">
         <h1>Měření – vyberte stanoviště</h1>
         {(['P5', 'C2'] as const).map(d => {
           const owner = state.stations.find(s => s.discipline === d)
           const other = owner && owner.deviceId !== state.deviceId
           return (
-            <p key={d}>
-              <button className="big" onClick={() => (other ? confirmTakeover(state, d, takeover) : chooseStation(state, setState, d, claim, takeover))}>
-                {DISCIPLINE_NAME[d]}
+            <p key={d} className="row">
+              <button className="btn-primary btn-xl" onClick={() => (other ? confirmTakeover(state, d, takeover) : chooseStation(state, setState, d, claim, takeover))}>
+                {STATION_TITLE[d]}
               </button>
-              {other && <> měří {deviceLabel(owner)}, naposledy {clockTime(owner.lastSeen)}</>}
+              {other && <span className="muted">měří {deviceLabel(owner)}, naposledy {clockTime(owner.lastSeen)}</span>}
             </p>
           )
         })}
@@ -108,66 +110,95 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
     }
   }
 
-  const row = ({ crew, d }: { crew: Crew; d: CrewDiscipline }, action: ReactNode, isNext = false) => (
-    <tr key={crew.startNumber} className={isNext ? 'next' : undefined}>
-      <td className="num">{crew.startNumber}</td>
-      <td>{crew.crewName}<br /><small>{crew.helmsman} · {crew.category}</small></td>
-      <td>{planned(crew) ?? '—'}</td>
-      <td>{action}</td>
-      <td><CrewDetail crew={crew} d={d} discipline={discipline} events={state.events} record={record} /></td>
-    </tr>
+  // time column: planned start while waiting, then the running or final time
+  const row = ({ crew, d }: { crew: Crew; d: CrewDiscipline }, time: ReactNode, action: ReactNode, isNext = false) => (
+    <li key={crew.startNumber} className={isNext ? 'crew-row next' : 'crew-row'}>
+      <span className="bib">{crew.startNumber}</span>
+      <div className="crew-info">
+        {isNext && <div className="eyebrow">Další na startu</div>}
+        <div className="crew-name">{crew.crewName}</div>
+        <div className="crew-sub">
+          {[crew.helmsman, crew.category, d.start ? `start ${clockTime(d.start.timestamp).slice(0, 5)}` : isNext && planned(crew) && `plán ${planned(crew)}`].filter(Boolean).join(' · ')}
+        </div>
+      </div>
+      {time}
+      {action}
+      <CrewDetail crew={crew} d={d} discipline={discipline} events={state.events} record={record} />
+    </li>
   )
 
+  const over = onCourse.length > BOAT_LIMIT
   return (
-    <section>
-      <h1>
-        Měření {DISCIPLINE_NAME[discipline]}{' '}
-        <small><button onClick={() => confirm('Změnit stanoviště tohoto notebooku?') && setState(s => ({ ...s, discipline: undefined }))}>změnit</button></small>
-      </h1>
-      <div className="clock">{new Date(now).toTimeString().slice(0, 8)}</div>
+    <section className="timing">
+      <header className="station-bar">
+        <div className="station-name">
+          <span className="eyebrow">Stanoviště</span>
+          <div className="row">
+            <h1>{STATION_TITLE[discipline]}</h1>
+            <button onClick={() => confirm('Změnit stanoviště tohoto notebooku?') && setState(s => ({ ...s, discipline: undefined }))}>Změnit</button>
+          </div>
+        </div>
+        <div className="clock">{new Date(now).toTimeString().slice(0, 8)}</div>
+        <fieldset disabled={locked} className="plain station-actions">
+          <span className={over ? 'on-course over-limit' : 'on-course'}>
+            <span className="on-course-label">Na trati</span> <strong>{onCourse.length}/{BOAT_LIMIT}</strong>{over && <span>nad limit</span>}
+          </span>
+          <button onClick={undo} disabled={!lastAction}>Zpět{lastAction && `: ${LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
+          <ExtraCrew state={state} setState={setState} />
+        </fieldset>
+      </header>
       {locked && (
-        <div role="alert" className="locked">
-          <strong>Stanoviště převzalo jiné zařízení: {deviceLabel(owner)}</strong> (naposledy {clockTime(owner.lastSeen)}).
-          Tady už nejde zapisovat.{' '}
-          <button onClick={() => confirmTakeover(state, discipline, takeover)}>Převzít zpět</button>
+        <div role="alert" className="alert locked">
+          <WarningIcon />
+          <div className="alert-body">
+            <div>
+              <div className="alert-title">Stanoviště převzalo jiné zařízení: {deviceLabel(owner)}</div>
+              Naposledy {clockTime(owner.lastSeen)}. Tady už nejde zapisovat.
+            </div>
+            <div><button onClick={() => confirmTakeover(state, discipline, takeover)}>Převzít zpět</button></div>
+          </div>
         </div>
       )}
-      <fieldset disabled={locked} className="plain">
-      <p className="toolbar">
-        <span className={onCourse.length > BOAT_LIMIT ? 'over-limit' : undefined}>Na trati: <strong>{onCourse.length}/{BOAT_LIMIT}</strong></span>
-        <button onClick={undo} disabled={!lastAction}>↶ Zpět{lastAction && `: ${LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
-        <ExtraCrew state={state} setState={setState} />
-      </p>
+      <fieldset disabled={locked} className="plain lanes">
+        <div className="lane stack">
+          <section className="card">
+            <CardTitle title="Na trati" count={onCourse.length} />
+            {onCourse.length ? <ul className="crew-list">
+              {onCourse.map(x => row(x,
+                <span className="running">{formatDuration((now - Date.parse(x.d.start!.timestamp)) / 1000)}</span>,
+                <button className="btn-primary btn-finish" onClick={() => record({ startNumber: x.crew.startNumber!, type: 'finish' })}>Cíl</button>,
+              ))}
+            </ul> : <p className="empty">Nikdo není na trati.</p>}
+          </section>
 
-      <h2>Na trati ({onCourse.length})</h2>
-      <table className="timing"><tbody>
-        {onCourse.map(x => row(x, <>
-          <span className="running">{formatDuration((now - Date.parse(x.d.start!.timestamp)) / 1000)}</span>{' '}
-          <button className="big finish" onClick={() => record({ startNumber: x.crew.startNumber!, type: 'finish' })}>Cíl</button>
-        </>))}
-      </tbody></table>
+          <section className="card">
+            <CardTitle title="Dojela" count={done.length} />
+            {done.length ? <ul className="crew-list">
+              {done.map(x => row(x,
+                x.d.status === 'out' ? <span className="badge badge-neutral">DNF</span> : <span className="result">{formatDuration(x.d.seconds!)}</span>,
+                discipline === 'P5' && x.d.status !== 'out' && <WaitInput d={x.d} onChange={waitSeconds => record({ startNumber: x.crew.startNumber!, type: 'wait', waitSeconds })} />,
+              ))}
+            </ul> : <p className="empty">Zatím nikdo nedojel. Posádky se tu objeví po stisku Cíl{discipline === 'P5' && ', na P550 s polem pro čekačku'}.</p>}
+          </section>
+        </div>
 
-      <h2>Čeká ({waiting.length})</h2>
-      <table className="timing"><tbody>
-        {waiting.map((x, i) => row(x,
-          <button className="big start" onClick={() => record({ startNumber: x.crew.startNumber!, type: 'start' })}>Start</button>,
-          i === 0,
-        ))}
-      </tbody></table>
-
-      <h2>Dojela ({done.length})</h2>
-      <table className="timing"><tbody>
-        {done.map(x => row(x, x.d.status === 'out'
-          ? <strong>DNF</strong>
-          : <>
-              {formatDuration(x.d.seconds!)}
-              {discipline === 'P5' && <WaitInput d={x.d} onChange={waitSeconds => record({ startNumber: x.crew.startNumber!, type: 'wait', waitSeconds })} />}
-            </>,
-        ))}
-      </tbody></table>
+        <section className="card lane waiting">
+          <CardTitle title="Čeká" count={waiting.length} />
+          {waiting.length ? <ul className="crew-list">
+            {waiting.map((x, i) => row(x,
+              i > 0 && <span className="planned">{planned(x.crew) ?? '—'}</span>,
+              <button className={i === 0 ? 'btn-positive btn-start-next' : 'btn-outline-positive btn-start'} onClick={() => record({ startNumber: x.crew.startNumber!, type: 'start' })}>Start</button>,
+              i === 0,
+            ))}
+          </ul> : <p className="empty">Všechny posádky odstartovaly.</p>}
+        </section>
       </fieldset>
     </section>
   )
+}
+
+function CardTitle({ title, count }: { title: string; count: number }) {
+  return <div className="card-head"><h2 className="card-title">{title} <span className="count">{count}</span></h2></div>
 }
 
 /** Wait from the P5 card, m:ss. Every change is a new wait event; the latest counts. */
@@ -175,7 +206,7 @@ function WaitInput({ d, onChange }: { d: CrewDiscipline; onChange: (seconds: num
   const current = d.waitSeconds ? formatDuration(d.waitSeconds).replace(/^0:/, '') : ''
   return (
     <label className="wait">
-      {' '}čekačka{' '}
+      čekačka
       <input
         key={current} defaultValue={current} placeholder="m:ss" size={5}
         onBlur={e => {
@@ -209,9 +240,14 @@ function CrewDetail({ crew, d, discipline, events, record }: {
   }
 
   return (
-    <details>
-      <summary>Upravit</summary>
-      <p>
+    <details className="crew-detail">
+      <summary aria-label="Upravit" title="Upravit">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </svg>
+      </summary>
+      <div className="detail-panel">
+      <p className="row">
         <button onClick={() => correct('start')}>Opravit start</button>{' '}
         {d.start && <button onClick={() => correct('finish')}>Opravit cíl</button>}{' '}
         {d.status !== 'out' && (
@@ -222,12 +258,13 @@ function CrewDetail({ crew, d, discipline, events, record }: {
         {mine.map(e => (
           <li key={e.id} className={voided.has(e.id) ? 'voided' : undefined}>
             {LABEL[e.type]} {e.type === 'wait' ? formatDuration(e.waitSeconds ?? 0) : e.type === 'start' || e.type === 'finish' ? clockTime(e.timestamp) : ''}
-            {!voided.has(e.id) && (
+            {' '}{!voided.has(e.id) && (
               <button onClick={() => confirm(`Zrušit ${LABEL[e.type].toLowerCase()} posádky ${startNumber}?`) && record({ startNumber, type: 'void', voidsEventId: e.id })}>zrušit</button>
             )}
           </li>
         ))}
       </ul>
+      </div>
     </details>
   )
 }

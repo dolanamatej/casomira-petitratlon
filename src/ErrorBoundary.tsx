@@ -14,7 +14,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error?: 
       <section role="alert">
         <h1>Appka narazila na chybu</h1>
         <p>Data jsou uložená v tomto prohlížeči a nic se neztratilo.</p>
-        <p><button className="big" onClick={() => location.reload()}>Načíst znovu</button></p>
+        <p><button className="btn-primary btn-xl" onClick={() => location.reload()}>Načíst znovu</button></p>
         <pre>{String(this.state.error.stack ?? this.state.error)}</pre>
       </section>
     )
