@@ -12,7 +12,7 @@ Appka měří dvoudílný závod (pramice P5 + kánoe C2) a vyhodnotí kategorie
 
 1. Import přihlášených posádek z CSV a ranní registrace s přidělením startovních čísel.
 2. Generátor startovky s ruční úpravou a tiskem.
-3. Měření: start, cíl, čekačka, oprava času, vyřazení, posádka navíc.
+3. Měření: start, cíl, čekačka, oprava času, DNF, posádka navíc.
 4. Výsledovka po kategoriích s tiskem.
 5. Lokální ukládání a export/import do souboru JSON.
 6. Záloha do Google tabulky (surový log + čitelná časovka) a obnova z ní.
@@ -56,13 +56,13 @@ OPEN,Victoria,Filip,Lososi
 | `Crew` | `startNumber`, `category`, `crewName`, `helmsman`, `club`, `plannedStartP5`, `plannedStartC2` | Přihlášená posádka má `startNumber` prázdné. Plánované starty jsou orientační čas ze startovky; posádka navíc je nemá. Posádku navíc lze přidat i během závodu. |
 | `Event` | `id` (UUID), `startNumber`, `discipline` (`P5`/`C2`), `type`, `timestamp`, `waitSeconds`, `voidsEventId`, `deviceId`, `createdAt` | Nikdy se nemaže ani nepřepisuje. |
 
-**Typy událostí:** `start`, `finish`, `wait` (čekačka v sekundách, jen P5), `dnf`, `dsq`, `void` (ruší jinou událost).
+**Typy událostí:** `start`, `finish`, `wait` (čekačka v sekundách, jen P5), `dnf`, `void` (ruší jinou událost).
 
 **Pravidla:**
 
 - Platí poslední nezrušená událost daného typu pro posádku a disciplínu.
 - Oprava času je nová událost `start` nebo `finish` s ručně zadaným časem.
-- Zrušit jde kteroukoli událost posádky, i starší. Vyřazení (`dnf`/`dsq`) se tak vrací stejně jako chybný start.
+- Zrušit jde kteroukoli událost posádky, i starší. DNF se tak vrací stejně jako chybný start.
 - Časy se ukládají jako absolutní razítka s přesností na sekundy.
 
 ## Generátor startovky
@@ -113,7 +113,7 @@ Appka má šest obrazovek; nejdůležitější je Měření, která musí být o
 | Posádky | Import CSV, kontrola načtených dat, ruční přidání a úprava posádky. |
 | Registrace | Seznam přihlášených posádek s vyhledáváním. U každé zadání startovního čísla z vesty a případná oprava údajů. Přehled, kolik posádek je registrováno. |
 | Startovka | Nastavení parametrů s náhledem délky závodu, vygenerování, ruční úprava pořadí, tisk po stanovištích. |
-| Měření | Volba disciplíny. Seznam posádek v pořadí startovky ve třech skupinách: čeká, na trati (s běžícím časem), dojela. Ukazatel „na trati: X/4“. Velká tlačítka Start a Cíl, na P5 zadání čekačky, oprava času, vyřazení (DNF/DSQ), přidání posádky navíc. |
+| Měření | Volba disciplíny. Seznam posádek v pořadí startovky ve třech skupinách: čeká, na trati (s běžícím časem), dojela. Ukazatel „na trati: X/4“. Velká tlačítka Start a Cíl, na P5 zadání čekačky, oprava času, DNF, přidání posádky navíc. |
 | Výsledky | Tabulka po kategoriích, pořadí, časy obou disciplín, tisk. |
 | Synchronizace | Stav zálohy (kolik událostí čeká na odeslání), stažení dat z tabulky, export/import JSON, obnova. |
 
@@ -122,7 +122,7 @@ Appka má šest obrazovek; nejdůležitější je Měření, která musí být o
 - Cíl jde zapsat jen posádce, která je na trati.
 - Tlačítko Zpět vrátí poslední akci. V detailu posádky jde zrušit kteroukoli její starší událost. Obojí vytvoří událost `void`.
 - Po stisku Cíl na P5 se u posádky objeví pole pro čekačku (`m:ss`). Prázdné pole znamená 0 a hodnotu jde později opravit.
-- Vyřazená posádka zmizí ze skupiny „na trati“.
+- Posádka s DNF zmizí ze skupiny „na trati“.
 - Ukazatel lodí na trati se při překročení limitu zvýrazní, ale Start nezablokuje.
 - Stav zálohy je vidět stále, ne jen na obrazovce Synchronizace.
 - Zavření nebo obnovení stránky nic neztratí, běžící časy se dopočítají z uložených startů.
@@ -131,7 +131,7 @@ Appka má šest obrazovek; nejdůležitější je Měření, která musí být o
 
 Čas P5 je cíl − start − čekačka, čas C2 je cíl − start a celkový čas je součet obou. Pořadí se určuje vzestupně podle celkového času v rámci kategorie.
 
-- Posádka bez dokončené disciplíny (DNF, DSQ, chybějící čas) je na konci kategorie bez pořadí, se zkratkou místo času.
+- Posádka bez dokončené disciplíny (DNF, chybějící čas) je na konci kategorie bez pořadí, se zkratkou místo času.
 - Shoda celkového času na sekundu znamená dělené místo (2., 2., 4.), bez dalšího kritéria.
 - Sloučení kategorií s málo posádkami se v MVP řeší úpravou kategorie u posádek před vygenerováním výsledovky.
 
@@ -197,7 +197,7 @@ Plán počítá s 12 pracovními dny a dvěma dny rezervy; zkouška nanečisto j
 | --- | --- | --- |
 | 1–2 | Kostra projektu, datový model, log událostí, import CSV, registrace, ukládání | Posádky z CSV a přidělená čísla přežijí obnovení stránky. |
 | 3–4 | Generátor startovky s náhledem délky závodu, ruční úprava, tisk | Startovka pro 27 posádek projde kontrolou limitů. |
-| 5–7 | Obrazovka Měření včetně oprav, vyřazení a posádky navíc | Jde odměřit celý závod a zrušit kteroukoli akci. |
+| 5–7 | Obrazovka Měření včetně oprav, DNF a posádky navíc | Jde odměřit celý závod a zrušit kteroukoli akci. |
 | 8–9 | Výsledovka a tisk, test na loňských datech | Výsledky se shodují s loňskou tabulkou. |
 | 10–11 | Apps Script, záloha, časovka, obnova, export/import JSON, service worker | Smazaný prohlížeč se obnoví z tabulky i ze souboru. Člověk může dopsat časy jedné disciplíny do časovky, zatímco appka zapisuje druhou. |
 | 12 | Přepnutí na ostrou tabulku, zkouška na dvou noteboocích | Sloučení obou disciplín dá správnou výsledovku. Appka naběhne po restartu bez wifi. |

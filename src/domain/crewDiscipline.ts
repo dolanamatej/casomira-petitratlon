@@ -9,7 +9,6 @@ export interface CrewDiscipline {
   waitSeconds: number
   /** finish − start − wait; only when finished */
   seconds?: number
-  outReason?: 'dnf' | 'dsq'
 }
 
 export function crewDiscipline(events: Event[], startNumber: number, discipline: Discipline): CrewDiscipline {
@@ -23,9 +22,9 @@ export function crewDiscipline(events: Event[], startNumber: number, discipline:
   const start = last('start')
   const finish = start && last('finish')
   const waitSeconds = last('wait')?.waitSeconds ?? 0
-  const out = last('dnf', 'dsq')
+  const out = last('dnf')
 
-  if (out) return { status: 'out', start, finish, waitSeconds, outReason: out.type as 'dnf' | 'dsq' }
+  if (out) return { status: 'out', start, finish, waitSeconds }
   if (finish) {
     const seconds = (Date.parse(finish.timestamp) - Date.parse(start.timestamp)) / 1000 - waitSeconds
     return { status: 'finished', start, finish, waitSeconds, seconds }

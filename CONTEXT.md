@@ -12,7 +12,7 @@
 - **Registrace** – ranní fyzická prezence (končí v 10:00, první start je v 10:30). Posádka, která opravdu přijela, dostane fyzické startovní číslo a registrátor ho opíše do appky. Appka hlídá jen to, aby se číslo neopakovalo. Teprve potom vzniká startovka.
 - **Startovní číslo** – jediný identifikátor posádky, platí pro obě disciplíny. Podle něj se posádka páruje mezi notebooky. Jakmile pro posádku existuje první událost, číslo už nejde změnit.
 - **Posádka navíc** – posádka, která vznikne až během závodu, třeba po domluvě vedoucích. Obsluha ji přidá přímo na stanovišti a hned ji může odstartovat. Má kategorii (typicky OPEN) a umisťuje se normálně. Číslo jí přidělí organizátoři a obě stanoviště zadají stejné.
-- **Vyřazení** – posádka nedokončila (DNF) nebo byla diskvalifikována (DSQ) v jedné disciplíně. Zmizí ze seznamu „na trati“ a ve výsledovce je na konci kategorie bez pořadí, se zkratkou místo času. Vyřazení jde kdykoli vrátit.
+- **DNF** – posádka nedokončila disciplínu. Zmizí ze seznamu „na trati“ a ve výsledovce je na konci kategorie bez pořadí, se zkratkou DNF místo času. Jde kdykoli vrátit. Diskvalifikace (DSQ) se zvlášť nerozlišuje, zapisuje se také jako DNF.
 - **Nouzový režim** – když appka selže, převezme měření člověk přímo v Google tabulce, jako v minulých letech. Závod nesmí skončit kvůli appce.
 - **Časovka** – čitelný list v Google tabulce v rozložení loňského vzoru: bloky po kategoriích, řádek na posádku, P5 i C2 na jednom řádku, časy jako běžné hodiny. Slouží lidem a nouzovému režimu. Surový log událostí je zvlášť a slouží jen k obnově appky.
 - **Kormidelník** – člověk, který řídí loď posádky. Startér ho vyvolává podle startovky. Projekt nepoužívá slovo „kapitán“.
@@ -27,7 +27,7 @@
 | Posádka se mezi notebooky páruje podle startovního čísla, ne podle interního `id`. | Posádku navíc přidávají obě stanoviště nezávisle a offline. Jediné, co mají společné, je číslo od organizátorů. |
 | Google tabulka zůstává v MVP jako záloha a jako místo pro nouzový režim. | Při selhání appky musí jít v měření pokračovat ručně v tabulce. |
 | Každá appka zapisuje do časovky jen sloupce své disciplíny, řádek najde podle startovního čísla. | Když člověk převezme jednu disciplínu, appka druhé disciplíny mu nic nepřepíše. |
-| Každou událost posádky jde zrušit i zpětně, ne jen tu poslední. Zrušení je nová událost, nic se nemaže. | Vyřazení i chybný start nebo cíl se může ukázat až po delší době. |
+| Každou událost posádky jde zrušit i zpětně, ne jen tu poslední. Zrušení je nová událost, nic se nemaže. | DNF i chybný start nebo cíl se může ukázat až po delší době. |
 | Příznak „mimo soutěž“ neexistuje; každá posádka se umisťuje ve své kategorii. | Účel pokryje kategorie OPEN; odpadá zvláštní pravidlo pro pořadí. |
 | Shoda celkového času na sekundu znamená dělené místo (2., 2., 4.), bez dalšího kritéria. | Shoda je vzácná a další pravidlo by se muselo vysvětlovat. |
 | Posádka navíc nemá plánovaný čas startu. Řádek v časovce jí podle čísla najde nebo založí Apps Script v prázdném řádku bloku kategorie. | Startovka je jen orientační. |

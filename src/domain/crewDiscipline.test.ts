@@ -36,6 +36,5 @@ test('dnf takes the crew off the course until it is voided', () => {
   const dnf = ev({ type: 'dnf' })
   const events = [ev({ type: 'start' }), dnf]
   assert.equal(crewDiscipline(events, 7, 'P5').status, 'out')
-  assert.equal(crewDiscipline(events, 7, 'P5').outReason, 'dnf')
   assert.equal(crewDiscipline([...events, ev({ type: 'void', voidsEventId: dnf.id })], 7, 'P5').status, 'onCourse')
 })

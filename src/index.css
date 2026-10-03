@@ -43,3 +43,47 @@ tr.unregistered {
 tr.drop-target {
   outline: 2px dashed #36c;
 }
+button.big {
+  font-size: 1.4rem;
+  padding: 0.5rem 1.5rem;
+  margin: 0.25rem;
+}
+button.start {
+  background: #2a7;
+  color: white;
+}
+button.finish {
+  background: #c33;
+  color: white;
+}
+.timing td {
+  border-bottom: 1px solid #ddd;
+  vertical-align: middle;
+}
+.timing .num {
+  font-size: 1.6rem;
+  font-weight: bold;
+  width: 3em;
+}
+.running {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+tr.next {
+  background: #eef8f2;
+}
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.over-limit {
+  color: white;
+  background: #c33;
+  padding: 0.2rem 0.5rem;
+}
+li.voided {
+  text-decoration: line-through;
+  color: #888;
+}

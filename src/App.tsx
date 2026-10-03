@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { CrewsScreen } from './CrewsScreen.tsx'
 import { ScheduleScreen } from './ScheduleScreen.tsx'
+import { TimingScreen } from './TimingScreen.tsx'
 import { useAppState } from './store.ts'
 
-const TABS = { crews: 'Posádky', schedule: 'Startovka' } as const
+const TABS = { crews: 'Posádky', schedule: 'Startovka', timing: 'Měření' } as const
 
 export default function App() {
   const [state, setState] = useAppState()
@@ -17,6 +18,7 @@ export default function App() {
       </nav>
       {tab === 'crews' && <CrewsScreen state={state} setState={setState} />}
       {tab === 'schedule' && <ScheduleScreen state={state} setState={setState} />}
+      {tab === 'timing' && <TimingScreen state={state} setState={setState} />}
     </>
   )
 }

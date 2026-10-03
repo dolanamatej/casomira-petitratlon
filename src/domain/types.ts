@@ -1,5 +1,5 @@
 export type Discipline = 'P5' | 'C2'
-export type EventType = 'start' | 'finish' | 'wait' | 'dnf' | 'dsq' | 'void'
+export type EventType = 'start' | 'finish' | 'wait' | 'dnf' | 'void'
 
 export interface Event {
   id: string

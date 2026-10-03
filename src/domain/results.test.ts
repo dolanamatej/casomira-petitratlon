@@ -47,7 +47,7 @@ test('equal totals share a place, crews without both times go last unranked', ()
   ]
   const events = [
     ...ride(1, '10:30:00'), ...ride(2, '10:25:00'), ...ride(3, '10:30:00'), ...ride(4, '10:20:00'),
-    ev({ startNumber: 4, discipline: 'C2', type: 'dsq' }),
+    ev({ startNumber: 4, discipline: 'C2', type: 'dnf' }),
     ev({ startNumber: 5, discipline: 'P5', type: 'start', timestamp: at('10:00:00') }), // still on course
   ]
   const [skauti] = computeResults([1, 2, 3, 4, 5].map(crew), events)
