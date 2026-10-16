@@ -46,12 +46,12 @@ test('equal totals share a place, crews without both times go last unranked', ()
     ev({ startNumber, discipline: 'C2', type: 'finish', timestamp: at('12:15:00') }),
   ]
   const events = [
-    ...ride(1, '10:30:00'), ...ride(2, '10:25:00'), ...ride(3, '10:30:00'), ...ride(4, '10:20:00'),
+    ...ride(1, '10:30:00'), ...ride(2, '10:25:00'), ...ride(3, '10:30:00.400'), ...ride(4, '10:20:00'),
     ev({ startNumber: 4, discipline: 'C2', type: 'dnf' }),
     ev({ startNumber: 5, discipline: 'P5', type: 'start', timestamp: at('10:00:00') }), // still on course
   ]
   const [skauti] = computeResults([1, 2, 3, 4, 5].map(crew), events)
   assert.deepEqual(skauti.rows.map(r => [r.startNumber, r.rank, r.rankTo]), [
-    [2, 1, 1], [1, 2, 3], [3, 2, 3], [4, undefined, undefined], [5, undefined, undefined], // 1., 2.–3., 2.–3.
+    [2, 1, 1], [1, 2, 3], [3, 2, 3], [4, undefined, undefined], [5, undefined, undefined], // 1., 2.–3., 2.–3. (0.4 s apart is the same second)
   ])
 })

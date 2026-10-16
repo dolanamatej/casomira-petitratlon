@@ -507,6 +507,9 @@ input.bib:disabled {
   line-height: 1;
   letter-spacing: -0.02em;
 }
+.clock-row {
+  gap: 20px;
+}
 .station-actions {
   position: relative;
   display: flex;

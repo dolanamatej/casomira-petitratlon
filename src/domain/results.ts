@@ -18,7 +18,8 @@ export function computeResults(crews: Crew[], events: Event[]): { category: Cate
     const startNumber = crew.startNumber!
     const p5 = crewDiscipline(events, startNumber, 'P5')
     const c2 = crewDiscipline(events, startNumber, 'C2')
-    const total = p5.seconds !== undefined && c2.seconds !== undefined ? p5.seconds + c2.seconds : undefined
+    // shown and ranked to the second, so a few ms apart is still a shared place
+    const total = p5.seconds !== undefined && c2.seconds !== undefined ? Math.round(p5.seconds + c2.seconds) : undefined
     return { startNumber, crew, p5, c2, total }
   })
 

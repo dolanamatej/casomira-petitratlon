@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { crewDiscipline, type CrewDiscipline } from './domain/crewDiscipline.ts'
 import { clockTime, clockToIso, formatDuration, parseWait } from './domain/time.ts'
 import { CATEGORIES, DISCIPLINE_NAME, type Category, type Crew, type Discipline, type Event } from './domain/types.ts'
@@ -138,14 +138,16 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
             <button onClick={() => confirm('Změnit stanoviště tohoto notebooku?') && setState(s => ({ ...s, discipline: undefined }))}>Změnit</button>
           </div>
         </div>
-        <div className="clock">{new Date(now).toTimeString().slice(0, 8)}</div>
+        <div className="row clock-row">
+          <div className="clock">{new Date(now).toTimeString().slice(0, 8)}</div>
+          <button className="btn-primary btn-xl" disabled={locked} onClick={() => setState(s => ({ ...s, stops: [...s.stops, new Date().toISOString()] }))}>Stopnout čas</button>
+        </div>
         <fieldset disabled={locked} className="plain station-actions">
           <span className={over ? 'on-course over-limit' : 'on-course'}>
             <span className="on-course-label">Na trati</span> <strong>{onCourse.length}/{BOAT_LIMIT}</strong>{over && <span>nad limit</span>}
           </span>
           <button onClick={undo} disabled={!lastAction}>Zpět{lastAction && `: ${LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
           <ExtraCrew state={state} setState={setState} />
-          <button className="btn-primary" onClick={() => setState(s => ({ ...s, stops: [...s.stops, new Date().toISOString()] }))}>Stopnout čas</button>
         </fieldset>
       </header>
       {locked && (
@@ -257,10 +259,16 @@ function WaitInput({ d, onChange }: { d: CrewDiscipline; onChange: (seconds: num
 }
 
 /** Corrections, DNF and voiding any of the crew's events. */
-function CrewDetail({ crew, d, discipline, events, record }: {
+function CrewDetail({ crew, d, discipline, events, record: recordEvent }: {
   crew: Crew; d: CrewDiscipline; discipline: Discipline; events: Event[]
   record: (e: Pick<Event, 'startNumber' | 'type'> & Partial<Event>) => void
 }) {
+  const ref = useRef<HTMLDetailsElement>(null)
+  // the panel overlays the rows below, so close it once something is done
+  const record: typeof recordEvent = e => {
+    recordEvent(e)
+    ref.current!.open = false
+  }
   const startNumber = crew.startNumber!
   const voided = new Set(events.filter(e => e.type === 'void').map(e => e.voidsEventId))
   const mine = events.filter(e => e.startNumber === startNumber && e.discipline === discipline && e.type !== 'void')
@@ -274,8 +282,15 @@ function CrewDetail({ crew, d, discipline, events, record }: {
     record({ startNumber, type, timestamp })
   }
 
+  function voidEvent(e: Event) {
+    // a finish without its start would pair with the next start and give a negative time
+    const finishes = e.type === 'start' ? mine.filter(f => f.type === 'finish' && !voided.has(f.id)) : []
+    if (!confirm(`Zrušit ${LABEL[e.type].toLowerCase()} posádky ${startNumber}?${finishes.length ? ' Zruší se i její cíl.' : ''}`)) return
+    for (const f of [e, ...finishes]) record({ startNumber, type: 'void', voidsEventId: f.id })
+  }
+
   return (
-    <details className="crew-detail">
+    <details ref={ref} className="crew-detail">
       <summary aria-label="Upravit" title="Upravit">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
@@ -294,7 +309,7 @@ function CrewDetail({ crew, d, discipline, events, record }: {
           <li key={e.id} className={voided.has(e.id) ? 'voided' : undefined}>
             {LABEL[e.type]} {e.type === 'wait' ? formatDuration(e.waitSeconds ?? 0) : e.type === 'start' || e.type === 'finish' ? clockTime(e.timestamp) : ''}
             {' '}{!voided.has(e.id) && (
-              <button onClick={() => confirm(`Zrušit ${LABEL[e.type].toLowerCase()} posádky ${startNumber}?`) && record({ startNumber, type: 'void', voidsEventId: e.id })}>zrušit</button>
+              <button onClick={() => voidEvent(e)}>zrušit</button>
             )}
           </li>
         ))}
