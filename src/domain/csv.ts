@@ -1,4 +1,4 @@
-import { CATEGORIES, type Category, type Crew } from './types.ts'
+import { CATEGORIES, type Crew } from './types.ts'
 
 /** RFC 4180-ish: quoted fields, "" escapes, CRLF. Delimiter is ',' or ';' (Czech Excel). */
 function parseCsv(text: string): string[][] {
@@ -31,13 +31,15 @@ export function importCrews(text: string): { crews: Crew[]; errors: string[] } {
   const crews: Crew[] = [], errors: string[] = []
   rows.forEach((r, i) => {
     if (r.every(f => !f.trim())) return
-    const category = r[col('category')]
-    if (!CATEGORIES.includes(category as Category)) {
-      errors.push(`Řádek ${i + 2}: neznámá kategorie „${category}“`)
+    const raw = r[col('category')] ?? ''
+    // spreadsheets write "Open" or "open", the app knows OPEN
+    const category = CATEGORIES.find(c => c.toLocaleLowerCase('cs') === raw.trim().toLocaleLowerCase('cs'))
+    if (!category) {
+      errors.push(`Řádek ${i + 2}: neznámá kategorie „${raw}“`)
       return
     }
     crews.push({
-      category: category as Category,
+      category,
       crewName: r[col('crew_name')]?.trim() ?? '',
       helmsman: r[col('helmsman')]?.trim() ?? '',
       club: r[col('club')]?.trim() ?? '',

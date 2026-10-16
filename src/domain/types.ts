@@ -17,7 +17,7 @@ export interface Event {
 }
 
 /** Ordered from the slowest; P5 start order follows this. */
-export const CATEGORIES = ['Žabičky', 'Vlčata', 'Skautky', 'Skauti', 'OPEN'] as const
+export const CATEGORIES = ['Žabičky', 'Vlčata', 'Skautky', 'Skauti', 'Roverky', 'Roveři', 'OPEN'] as const
 export type Category = (typeof CATEGORIES)[number]
 
 export interface Crew {

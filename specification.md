@@ -47,7 +47,7 @@ Vlčata,Kladivouni,Krab,Štiky
 OPEN,Victoria,Filip,Lososi
 ```
 
-`category` musí být jedna z: `Žabičky`, `Vlčata`, `Skautky`, `Skauti`, `OPEN`. Import neznámou kategorii odmítne s jasnou hláškou.
+`category` musí být jedna z: `Žabičky`, `Vlčata`, `Skautky`, `Skauti`, `Roverky`, `Roveři`, `OPEN` (na velikosti písmen nezáleží). Import neznámou kategorii odmítne s jasnou hláškou.
 
 **Startovní číslo je jediný identifikátor posádky.** Události odkazují na číslo a podle něj se posádka páruje mezi notebooky. Jakmile pro posádku existuje první událost, číslo už nejde změnit. Přihlášená posádka bez čísla existuje jen na hlavním notebooku a do startovky ani do synchronizace nevstupuje.
 
@@ -69,7 +69,7 @@ OPEN,Victoria,Filip,Lososi
 
 Startovka vzniká až po registraci, jen z posádek se startovním číslem.
 
-**Pořadí:** na P550 se startuje od nejpomalejší kategorie: Žabičky → Vlčata → Skautky → Skauti → OPEN, uvnitř kategorie podle startovního čísla. Pomalé posádky tak jedou dlouhou pramici, dokud je trať prázdná, a závod nekončí čekáním na ně.
+**Pořadí:** na P550 se startuje od nejpomalejší kategorie: Žabičky → Vlčata → Skautky → Skauti → Roverky → Roveři → OPEN, uvnitř kategorie podle startovního čísla. Pomalé posádky tak jedou dlouhou pramici, dokud je trať prázdná, a závod nekončí čekáním na ně.
 
 **Algoritmus:** každé stanoviště má N slotů po sobě. Posádka ve slotu `i` na pramici dostane na kánoi slot `(i + ceil(N/2)) mod N`. První (pomalejší) polovina jede nejdřív pramici, druhá nejdřív kánoi, a na žádném stanovišti nevzniká díra.
 
@@ -145,7 +145,7 @@ Data jsou na třech místech: v prohlížeči notebooku, v Google tabulce a v ex
 
 - `crews`: jedna posádka na řádek včetně plánovaných startů. Slouží appce, ale je čitelný i pro lidi.
 - `events`: surový log událostí, jen pro appku.
-- `časovka`: čitelný list pro lidi v rozložení vzoru (`časovka_vzor.xlsx`), bloky po kategoriích v pořadí Žabičky, Vlčata, Skautky, Skauti, OPEN, jeden řádek na posádku, P550 i C2 na jednom řádku, časy jako běžné hodiny `hh:mm:ss`. Sloupce: A kategorie (nadpis bloku), B start. číslo, C oddíl, D posádka, E kormidelník, F–I pramice (start, cíl, čekačka, výsledek), J–L kánoe (start, cíl, výsledek), M celkový čas, N pořadí. Výsledek, celkový čas a pořadí počítají vzorce, takže časovka funguje i bez appky. Hlavní notebook ho založí po vygenerování startovky a v každém bloku nechá několik volných řádků pro posádky navíc.
+- `časovka`: čitelný list pro lidi v rozložení vzoru (`časovka_vzor.xlsx`), bloky po kategoriích v pořadí Žabičky, Vlčata, Skautky, Skauti, Roverky, Roveři, OPEN, jeden řádek na posádku, P550 i C2 na jednom řádku, časy jako běžné hodiny `hh:mm:ss`. Sloupce: A kategorie (nadpis bloku), B start. číslo, C oddíl, D posádka, E kormidelník, F–I pramice (start, cíl, čekačka, výsledek), J–L kánoe (start, cíl, výsledek), M celkový čas, N pořadí. Výsledek, celkový čas a pořadí počítají vzorce, takže časovka funguje i bez appky. Hlavní notebook ho založí po vygenerování startovky a v každém bloku nechá několik volných řádků pro posádky navíc.
 
 **Pravidlo pro časovku:** každá appka zapisuje jen sloupce své disciplíny (P550: F–H; C2: J–K) a řádek hledá podle startovního čísla. Do cizích sloupců nesahá. Když člověk převezme jednu disciplínu (nouzový režim), appka druhé disciplíny mu nic nepřepíše. Pokud startovní číslo v časovce chybí (posádka navíc), skript ho zapíše do prvního volného řádku bloku její kategorie.
 

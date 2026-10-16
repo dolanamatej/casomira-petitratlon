@@ -6,7 +6,7 @@
 - **Stanoviště** – místo, kde je start i cíl jedné disciplíny. Na každém stanovišti je jeden notebook, který měří celou disciplínu.
 - **Převzetí stanoviště** – každé stanoviště měří v jednu chvíli právě jedno zařízení (notebook nebo tablet), zapsané v tabulce. Náhradní zařízení stanoviště převezme: stáhne všechna data a od té chvíle měří ono. Původní zařízení po příštím spojení zjistí, že bylo nahrazeno, a přestane dovolovat zápis.
 - **Hlavní notebook** – měřicí notebook jednoho stanoviště, na kterém navíc běží registrace, generování startovky a výsledovka. Druhý notebook jen měří svou disciplínu.
-- **Kategorie** – pevný seznam seřazený od nejpomalejších: Žabičky, Vlčata, Skautky, Skauti, OPEN. Pořadí ve výsledovce se určuje uvnitř kategorie. „Světlušky“ jsou totéž co Žabičky; projekt používá jen název Žabičky. Import CSV neznámou kategorii odmítne.
+- **Kategorie** – pevný seznam seřazený od nejpomalejších: Žabičky, Vlčata, Skautky, Skauti, Roverky, Roveři, OPEN. Pořadí ve výsledovce se určuje uvnitř kategorie. „Světlušky“ jsou totéž co Žabičky; projekt používá jen název Žabičky. Import CSV na velikosti písmen nehledí („Open“ = OPEN), neznámou kategorii odmítne.
 - **OPEN** – samostatná kategorie s vlastním pořadím, například pro dospělé nebo smíšené posádky.
 - **Posádka** – tým, který jede obě disciplíny a patří do jedné kategorie.
 - **Přihlášená posádka** – posádka načtená z CSV před závodem. Ještě nemá startovní číslo a do startovky nepatří.
