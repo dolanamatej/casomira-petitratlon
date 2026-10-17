@@ -17,7 +17,8 @@ const COLUMNS = ['Pořadí', 'Číslo', 'Posádka', 'P550', 'Čekačka', 'C2', '
 
 /** Print keeps the plain pre-redesign sheet: text only, helmsman and club in their own columns. */
 const PRINT_COLUMNS = ['Pořadí', 'Číslo', 'Posádka', 'Kormidelník', 'Oddíl', 'P550', 'Čekačka', 'C2', 'Celkem']
-const PRINT_WIDTHS = ['7%', '6%', '20%', '16%', '15%', '9%', '9%', '9%', '9%']
+// landscape A4; club names are long ("7. OVS Štiky, Junák – český skaut, přístav …"), so the club gets the room
+const PRINT_WIDTHS = ['6%', '5.5%', '14.5%', '11%', '33%', '7.5%', '7.5%', '7.5%', '7.5%']
 const printRide = (d: CrewDiscipline) =>
   d.status === 'finished'
     ? formatDuration((Date.parse(d.finish!.timestamp) - Date.parse(d.start!.timestamp)) / 1000)
@@ -30,7 +31,7 @@ export function ResultsScreen({ state }: { state: AppState }) {
   const onCourse = all.filter(r => r.p5.status === 'onCourse' || r.c2.status === 'onCourse').length
   const finished = all.filter(r => r.total !== undefined).length
   return (
-    <section>
+    <section className="results-screen">
       <div className="page-head results-head">
         <h1>Výsledky</h1>
         {all.length > 0 && <span className="muted no-print">Na trati {onCourse} · dokončeno {finished} z {all.length}</span>}

@@ -1064,6 +1064,9 @@ tr.clash-row td:first-child {
 @page {
   margin: 0;
 }
+@page results {
+  size: A4 landscape;
+}
 /* print stays as plain as it was before the redesign */
 .print-only {
   display: none;
@@ -1157,17 +1160,29 @@ tr.clash-row td:first-child {
     height: auto;
     padding: 0;
   }
+  /* results print on landscape pages: nine columns and long club names do not fit portrait */
+  .results-screen {
+    page: results;
+  }
   .print-results {
     width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
     break-inside: avoid;
+    font-size: 10pt;
   }
   .print-results td,
   .print-results th {
     padding: 0.2rem 0.4rem;
     text-align: left;
+    vertical-align: top;
     border-bottom: 1px solid #ddd;
+  }
+  /* headers and times never wrap mid-word into the next column */
+  .print-results th,
+  .print-results td:nth-child(-n + 2),
+  .print-results td:nth-child(n + 6) {
+    white-space: nowrap;
   }
   .print-results h2 {
     margin: 1rem 0 0;

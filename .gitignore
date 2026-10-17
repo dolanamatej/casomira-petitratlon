@@ -1,6 +1,7 @@
 # Personal data (children's names): never commit
 *.xlsx
 *.csv
+*.pdf
 *.json
 !package.json
 !package-lock.json
