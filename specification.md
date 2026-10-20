@@ -53,7 +53,7 @@ OPEN,Victoria,Filip,Lososi
 
 | Entita | Pole | Poznámka |
 | --- | --- | --- |
-| `Crew` | `startNumber`, `category`, `crewName`, `helmsman`, `club`, `plannedStartP5`, `plannedStartC2` | Přihlášená posádka má `startNumber` prázdné. Plánované starty jsou orientační čas ze startovky; posádka navíc je nemá. Posádku navíc lze přidat i během závodu. |
+| `Crew` | `startNumber`, `category`, `crewName`, `helmsman`, `sharesWith`, `club`, `plannedStartP5`, `plannedStartC2` | Přihlášená posádka má `startNumber` prázdné. Plánované starty jsou orientační čas ze startovky; posádka navíc je nemá. Posádku navíc lze přidat i během závodu. |
 | `Event` | `id` (UUID), `startNumber`, `discipline` (`P5`/`C2`), `type`, `timestamp`, `waitSeconds`, `voidsEventId`, `deviceId`, `createdAt` | Nikdy se nemaže ani nepřepisuje. |
 
 **Typy událostí:** `start`, `finish`, `wait` (čekačka v sekundách, jen P550), `dnf`, `void` (ruší jinou událost).
@@ -61,7 +61,7 @@ OPEN,Victoria,Filip,Lososi
 **Pravidla:**
 
 - Platí poslední nezrušená událost daného typu pro posádku a disciplínu.
-- Oprava času je nová událost `start` nebo `finish` s ručně zadaným časem.
+- Oprava času je nová událost `start` nebo `finish` s ručně zadaným časem; opravovaná událost se zároveň zruší (`void`).
 - Zrušit jde kteroukoli událost posádky, i starší. DNF se tak vrací stejně jako chybný start.
 - Časy se ukládají jako absolutní razítka s přesností na sekundy.
 
@@ -69,9 +69,9 @@ OPEN,Victoria,Filip,Lososi
 
 Startovka vzniká až po registraci, jen z posádek se startovním číslem.
 
-**Pořadí:** na P550 se startuje od nejpomalejší kategorie: Žabičky → Vlčata → Skautky → Skauti → Roverky → Roveři → OPEN, uvnitř kategorie podle startovního čísla. Pomalé posádky tak jedou dlouhou pramici, dokud je trať prázdná, a závod nekončí čekáním na ně.
+**Pořadí:** kategorie se rovnoměrně promíchají (každá je rozprostřená po celé startovce), uvnitř kategorie podle startovního čísla. Generátor pak prohazuje posádky, dokud nezmizí střety kormidelníků a posádek se společnými členy.
 
-**Algoritmus:** každé stanoviště má N slotů po sobě. Posádka ve slotu `i` na pramici dostane na kánoi slot `(i + ceil(N/2)) mod N`. První (pomalejší) polovina jede nejdřív pramici, druhá nejdřív kánoi, a na žádném stanovišti nevzniká díra.
+**Algoritmus:** každé stanoviště má N slotů po sobě. Posádka ve slotu `i` na pramici dostane na kánoi slot `(i + ceil(N/2)) mod N`. První polovina jede nejdřív pramici, druhá nejdřív kánoi, a na žádném stanovišti nevzniká díra.
 
 | Parametr | Výchozí hodnota | Odkud |
 | --- | --- | --- |

@@ -160,6 +160,9 @@ const crewFromSheet = (r: Record<string, string | number>): Crew => ({
   plannedStartP5: optional(String(r.plannedStartP5)),
   plannedStartC2: optional(String(r.plannedStartC2)),
   paid: String(r.paid) === 'true',
+  // older sheets have no such column
+  sharesWith: optional(String(r.sharesWith ?? '')),
+  priority: String(r.priority) === 'true',
 })
 const OLD_SCRIPT = 'Skript v tabulce je zastaralý: vložte aktuální Code.gs a vydejte novou verzi nasazení.'
 

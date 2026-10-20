@@ -16,7 +16,7 @@ export interface Event {
   createdAt: string
 }
 
-/** Ordered from the slowest; P5 start order follows this. */
+/** Ordered from the slowest. */
 export const CATEGORIES = ['Žabičky', 'Vlčata', 'Skautky', 'Skauti', 'Roverky', 'Roveři', 'OPEN'] as const
 export type Category = (typeof CATEGORIES)[number]
 
@@ -26,7 +26,11 @@ export interface Crew {
   category: Category
   crewName: string
   helmsman: string
+  /** Start numbers of crews with common members, e.g. "12, 15"; their rides must not overlap. */
+  sharesWith?: string
   club: string
+  /** Starts P5 as early as possible; C2 is still planned, but the crew may go whenever it is free. */
+  priority?: boolean
   /** Entry fee paid, ticked at registration. */
   paid?: boolean
   /** "HH:MM" from the schedule, orientation only */

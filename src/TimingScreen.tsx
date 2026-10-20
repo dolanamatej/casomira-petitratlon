@@ -26,6 +26,8 @@ async function confirmTakeover(state: AppState, d: Discipline, takeover: Props['
 }
 
 const BOAT_LIMIT = 4
+/** How long a just started or finished crew keeps its row; the clock ticks per second, so 1–3 s. */
+const HOLD_MS = 2000
 const STATION_TITLE: Record<Discipline, string> = { P5: 'Pramice P550', C2: 'Kánoe C2' }
 const LABEL: Record<Event['type'], string> = { start: 'Start', finish: 'Cíl', wait: 'Čekačka', dnf: 'DNF', void: 'Zrušení' }
 
@@ -90,6 +92,17 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
     const event: Event = { id: crypto.randomUUID(), discipline, timestamp: at, deviceId: state.deviceId, createdAt: at, ...e }
     setState(s => ({ ...s, events: [...s.events, event] }))
   }
+  // a crew leaving its list at once would move the next one under the finger, and an accidental
+  // second tap would hit it; so the row stays put a moment with its button disabled
+  const [pressed, setPressed] = useState<Record<number, { type: 'start' | 'finish'; at: number }>>({})
+  const press = (startNumber: number, type: 'start' | 'finish') => {
+    setPressed(p => ({ ...p, [startNumber]: { type, at: Date.now() } }))
+    record({ startNumber, type })
+  }
+  const held = (x: { crew: Crew }, type: 'start' | 'finish') => {
+    const p = pressed[x.crew.startNumber!]
+    return p?.type === type && now - p.at < HOLD_MS
+  }
 
   const planned = (c: Crew) => (discipline === 'P5' ? c.plannedStartP5 : c.plannedStartC2)
   // station order; extra crews without a planned start go last
@@ -97,15 +110,29 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
     .filter(c => c.startNumber !== undefined)
     .sort((a, b) => (planned(a) ?? '99').localeCompare(planned(b) ?? '99') || a.startNumber! - b.startNumber!)
     .map(crew => ({ crew, d: crewDiscipline(state.events, crew.startNumber!, discipline) }))
-  const waiting = crews.filter(x => x.d.status === 'waiting')
-  const onCourse = crews.filter(x => x.d.status === 'onCourse')
-  const done = crews.filter(x => x.d.status === 'finished' || x.d.status === 'out')
+  const ended = (x: { d: CrewDiscipline }) => x.d.status === 'finished' || x.d.status === 'out'
+  const waiting = crews.filter(x => x.d.status === 'waiting' || (x.d.status === 'onCourse' && held(x, 'start')))
+  const onCourse = crews.filter(x => (x.d.status === 'onCourse' && !held(x, 'start')) || (ended(x) && held(x, 'finish')))
+  const done = crews.filter(x => ended(x) && !held(x, 'finish'))
+  const next = waiting.find(x => !held(x, 'start'))
+  const onCourseCount = crews.filter(x => x.d.status === 'onCourse').length
 
   const voided = new Set(state.events.filter(e => e.type === 'void').map(e => e.voidsEventId))
   const lastAction = state.events.findLast(e => e.deviceId === state.deviceId && e.discipline === discipline && e.type !== 'void' && !voided.has(e.id))
+  // a correction is recorded as the void of the old time right before the new one
+  const before = lastAction && state.events[state.events.indexOf(lastAction) - 1]
+  const replaced = before?.type === 'void' && before.deviceId === state.deviceId
+    ? state.events.find(e => e.id === before.voidsEventId && e.type === lastAction!.type && e.startNumber === lastAction!.startNumber && e.discipline === discipline)
+    : undefined
   function undo() {
     if (!lastAction) return
-    if (confirm(`Vrátit: ${LABEL[lastAction.type]} posádky ${lastAction.startNumber}?`)) {
+    if (replaced) {
+      // undoing a correction brings the old time back as a new event: nothing is ever deleted
+      if (confirm(`Vrátit opravu: ${LABEL[lastAction.type].toLowerCase()} posádky ${lastAction.startNumber} zpět na ${clockTime(replaced.timestamp)}?`)) {
+        record({ startNumber: lastAction.startNumber, type: 'void', voidsEventId: lastAction.id })
+        record({ startNumber: replaced.startNumber, type: replaced.type, timestamp: replaced.timestamp })
+      }
+    } else if (confirm(`Vrátit: ${LABEL[lastAction.type]} posádky ${lastAction.startNumber}?`)) {
       record({ startNumber: lastAction.startNumber, type: 'void', voidsEventId: lastAction.id })
     }
   }
@@ -118,7 +145,7 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
         {isNext && <div className="eyebrow">Další na startu</div>}
         <div className="crew-name">{crew.crewName}</div>
         <div className="crew-sub">
-          {[crew.helmsman, crew.category, d.start ? `start ${clockTime(d.start.timestamp).slice(0, 5)}` : isNext && planned(crew) && `plán ${planned(crew)}`].filter(Boolean).join(' · ')}
+          {[crew.helmsman, crew.category, crew.priority && d.status === 'waiting' && 'prioritní: může kdykoli', d.start ? `start ${clockTime(d.start.timestamp).slice(0, 5)}` : isNext && planned(crew) && `plán ${planned(crew)}`].filter(Boolean).join(' · ')}
         </div>
       </div>
       {time}
@@ -127,7 +154,7 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
     </li>
   )
 
-  const over = onCourse.length > BOAT_LIMIT
+  const over = onCourseCount > BOAT_LIMIT
   return (
     <section className="timing">
       <header className="station-bar">
@@ -144,9 +171,9 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
         </div>
         <fieldset disabled={locked} className="plain station-actions">
           <span className={over ? 'on-course over-limit' : 'on-course'}>
-            <span className="on-course-label">Na trati</span> <strong>{onCourse.length}/{BOAT_LIMIT}</strong>{over && <span>nad limit</span>}
+            <span className="on-course-label">Na trati</span> <strong>{onCourseCount}/{BOAT_LIMIT}</strong>{over && <span>nad limit</span>}
           </span>
-          <button onClick={undo} disabled={!lastAction}>Zpět{lastAction && `: ${LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
+          <button onClick={undo} disabled={!lastAction}>Zpět{lastAction && `: ${replaced ? 'oprava' : LABEL[lastAction.type]} ${lastAction.startNumber}`}</button>
           <ExtraCrew state={state} setState={setState} />
         </fieldset>
       </header>
@@ -178,7 +205,9 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
             {onCourse.length ? <ul className="crew-list">
               {onCourse.map(x => row(x,
                 <span className="running">{formatDuration((now - Date.parse(x.d.start!.timestamp)) / 1000)}</span>,
-                <button className="btn-primary btn-finish" onClick={() => record({ startNumber: x.crew.startNumber!, type: 'finish' })}>Cíl</button>,
+                held(x, 'finish')
+                  ? <button className="btn-primary btn-finish" disabled>✓ cíl</button>
+                  : <button className="btn-primary btn-finish" onClick={() => press(x.crew.startNumber!, 'finish')}>Cíl</button>,
               ))}
             </ul> : <p className="empty">Nikdo není na trati.</p>}
           </section>
@@ -197,11 +226,13 @@ function Station({ discipline, state, setState, takeover }: Props & { discipline
         <section className="card lane waiting">
           <CardTitle title="Čeká" count={waiting.length} />
           {waiting.length ? <ul className="crew-list">
-            {waiting.map((x, i) => row(x,
-              i > 0 && <span className="planned">{planned(x.crew) ?? '—'}</span>,
-              <button className={i === 0 ? 'btn-positive btn-start-next' : 'btn-outline-positive btn-start'} onClick={() => record({ startNumber: x.crew.startNumber!, type: 'start' })}>Start</button>,
-              i === 0,
-            ))}
+            {waiting.map(x => held(x, 'start')
+              ? row(x, null, <button className="btn-outline-positive btn-start" disabled>✓ start</button>)
+              : row(x,
+                x !== next && <span className="planned">{planned(x.crew) ?? '—'}</span>,
+                <button className={x === next ? 'btn-positive btn-start-next' : 'btn-outline-positive btn-start'} onClick={() => press(x.crew.startNumber!, 'start')}>Start</button>,
+                x === next,
+              ))}
           </ul> : <p className="empty">Všechny posádky odstartovaly.</p>}
         </section>
       </fieldset>
@@ -238,6 +269,9 @@ function StopRow({ at, crews, record, drop }: {
   )
 }
 
+const WAIT_MIN = 30
+const WAIT_MAX = 10 * 60
+
 /** Wait from the P5 card, m:ss. Every change is a new wait event; the latest counts. */
 function WaitInput({ d, onChange }: { d: CrewDiscipline; onChange: (seconds: number) => void }) {
   const current = d.waitSeconds ? formatDuration(d.waitSeconds).replace(/^0:/, '') : ''
@@ -250,7 +284,14 @@ function WaitInput({ d, onChange }: { d: CrewDiscipline; onChange: (seconds: num
           const seconds = parseWait(e.currentTarget.value)
           e.currentTarget.setCustomValidity(seconds === undefined ? 'Zadejte čekačku jako m:ss, např. 4:20' : '')
           if (seconds === undefined) return e.currentTarget.reportValidity()
-          if (seconds !== d.waitSeconds) onChange(seconds)
+          if (seconds === d.waitSeconds) return
+          // 2026 waits were 0:45–7:03 apart from one 0:04 fixed to 2:29 half a minute later
+          const odd = seconds > 0 && (seconds < WAIT_MIN || seconds > WAIT_MAX)
+          if (odd && !confirm(`Čekačka ${formatDuration(seconds).replace(/^0:/, '')} je neobvyklá (běžně ${WAIT_MIN} s až ${WAIT_MAX / 60} min). Opravdu zapsat?`)) {
+            e.currentTarget.value = current
+            return
+          }
+          onChange(seconds)
         }}
         onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
       />
@@ -279,6 +320,8 @@ function CrewDetail({ crew, d, discipline, events, record: recordEvent }: {
     if (text === null) return
     const timestamp = clockToIso(text, current?.timestamp ?? new Date().toISOString())
     if (!timestamp) return alert('Čas musí být ve formátu HH:MM:SS, např. 10:30:05')
+    // the corrected time replaces the old one, so the list keeps a single valid start or finish
+    if (current) record({ startNumber, type: 'void', voidsEventId: current.id })
     record({ startNumber, type, timestamp })
   }
 

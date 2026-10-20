@@ -8,7 +8,7 @@ export type Snapshot = Record<number, string>
 
 // fixed field order and '' for missing, so a crew read back from the sheet compares equal
 const canonical = (c: Crew) =>
-  JSON.stringify([c.startNumber, c.category, c.crewName, c.helmsman, c.club, c.plannedStartP5 ?? '', c.plannedStartC2 ?? '', !!c.paid])
+  JSON.stringify([c.startNumber, c.category, c.crewName, c.helmsman, c.club, c.plannedStartP5 ?? '', c.plannedStartC2 ?? '', !!c.paid, c.sharesWith ?? '', !!c.priority])
 
 export const snapshotOf = (crews: Crew[], base: Snapshot = {}): Snapshot =>
   Object.fromEntries([...Object.entries(base), ...crews.filter(c => c.startNumber !== undefined).map(c => [c.startNumber, canonical(c)])])

@@ -6,7 +6,7 @@
 const EVENT_COLUMNS = ['id', 'startNumber', 'discipline', 'type', 'timestamp',
   'waitSeconds', 'voidsEventId', 'deviceId', 'createdAt'];
 const CREW_COLUMNS = ['startNumber', 'category', 'crewName', 'helmsman', 'club',
-  'plannedStartP5', 'plannedStartC2', 'paid'];
+  'plannedStartP5', 'plannedStartC2', 'paid', 'sharesWith', 'priority'];
 // which device times which station; only that device may write its časovka columns
 const STATION_COLUMNS = ['discipline', 'deviceId', 'deviceName', 'since', 'lastSeen'];
 
@@ -19,6 +19,8 @@ const CASOVKA_COLUMNS = {
   C2: { start: 'J', finish: 'K' },
 };
 const RESULT_FORMULA_COLUMN = 9; // I: every data row has the P5 result formula
+// typed-in cells of a row as [first column, width]: B–H and J–K; the rest are formulas
+const TYPED_CELLS = [[2, 7], [10, 2]];
 
 function doPost(e) {
   const body = JSON.parse(e.postData.contents);
@@ -98,6 +100,7 @@ function appendEvents(ss, events) {
 function upsertCrews(ss, crews) {
   if (!crews.length) return;
   const sh = table(ss, 'crews', CREW_COLUMNS);
+  sh.getRange(1, 1, 1, CREW_COLUMNS.length).setValues([CREW_COLUMNS]); // sheets from older versions lack newer columns
   const numbers = sh.getRange(1, 1, sh.getLastRow(), 1).getValues().flat().map(String);
   for (const c of crews) {
     const row = CREW_COLUMNS.map(k => c[k] ?? '');
@@ -122,17 +125,34 @@ class Casovka {
 
   row(startNumber, category) {
     const found = this.b.indexOf(String(startNumber));
-    if (found >= 0) return found + 1;
     const header = this.a.indexOf(String(category).toLocaleUpperCase());
+    if (found >= 0 && (header < 0 || this.blockOf(found) === header)) return found + 1;
     if (header < 0) throw new Error('časovka: chybí blok kategorie ' + category);
     for (let i = header + 1; i < this.a.length && !this.a[i]; i++) {
       if (!this.b[i] && this.formulas[i]) {
+        // category changed after the crew got its row: move the row into the new block
+        if (found >= 0) this.move(found, i);
+        else this.sh.getRange(i + 1, 2).setValue(startNumber);
         this.b[i] = String(startNumber);
-        this.sh.getRange(i + 1, 2).setValue(startNumber);
         return i + 1;
       }
     }
     throw new Error('časovka: v bloku ' + category + ' není volný řádek');
+  }
+
+  /** Index of the category header above row index i. */
+  blockOf(i) {
+    while (i > 0 && !this.a[i]) i--;
+    return i;
+  }
+
+  move(from, to) {
+    for (const [col, width] of TYPED_CELLS) {
+      const source = this.sh.getRange(from + 1, col, 1, width);
+      source.copyTo(this.sh.getRange(to + 1, col, 1, width), { contentsOnly: true });
+      source.clearContent();
+    }
+    this.b[from] = '';
   }
 
   writeIdentity(c) {
@@ -164,9 +184,7 @@ function resetTestData() {
   const sh = ss.getSheetByName(CASOVKA_SHEET);
   const formulas = sh.getRange(1, RESULT_FORMULA_COLUMN, sh.getLastRow(), 1).getFormulas().flat();
   formulas.forEach((f, i) => {
-    if (!f) return;
-    sh.getRange(i + 1, 2, 1, 7).clearContent(); // B–H: number, club, crew, helmsman, P5 start, finish, wait
-    sh.getRange(i + 1, 10, 1, 2).clearContent(); // J–K: C2 start, finish
+    if (f) TYPED_CELLS.forEach(([col, width]) => sh.getRange(i + 1, col, 1, width).clearContent());
   });
 }
 

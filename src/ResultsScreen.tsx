@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { CrewDiscipline } from './domain/crewDiscipline.ts'
 import { computeResults, type ResultRow } from './domain/results.ts'
 import { formatDuration } from './domain/time.ts'
@@ -25,7 +26,23 @@ const printRide = (d: CrewDiscipline) =>
     : d.status === 'out' ? 'DNF' : d.status === 'onCourse' ? 'na trati' : '—'
 const printPlace = (r: ResultRow) => (!r.rank ? '' : r.rankTo! > r.rank ? `${r.rank}.–${r.rankTo}.` : `${r.rank}.`)
 
-export function ResultsScreen({ state }: { state: AppState }) {
+/** The other station's events arrive only from the sheet, so results refresh them while open. */
+const PULL_MS = 60_000
+
+export function ResultsScreen({ state, pull }: { state: AppState; pull?: () => Promise<unknown> }) {
+  const [pulled, setPulled] = useState<{ at?: Date; error?: string }>({})
+  // interval calls the latest pull without restarting on every render
+  const latestPull = useRef(pull)
+  useEffect(() => { latestPull.current = pull })
+  useEffect(() => {
+    const refresh = () => latestPull.current?.().then(
+      () => setPulled({ at: new Date() }),
+      err => setPulled(p => ({ ...p, error: String(err instanceof Error ? err.message : err) })),
+    )
+    refresh()
+    const id = setInterval(refresh, PULL_MS)
+    return () => clearInterval(id)
+  }, [])
   const results = computeResults(state.crews, state.events)
   const all = results.flatMap(r => r.rows)
   const onCourse = all.filter(r => r.p5.status === 'onCourse' || r.c2.status === 'onCourse').length
@@ -35,6 +52,13 @@ export function ResultsScreen({ state }: { state: AppState }) {
       <div className="page-head results-head">
         <h1>Výsledky</h1>
         {all.length > 0 && <span className="muted no-print">Na trati {onCourse} · dokončeno {finished} z {all.length}</span>}
+        {pull && (
+          <span className={pulled.error ? 'muted no-print warn-text' : 'muted no-print'}>
+            {pulled.at ? `Data z tabulky ${pulled.at.toTimeString().slice(0, 8)}` : 'Stahuji data z tabulky…'}
+            {pulled.error && ` · stažení selhalo: ${pulled.error}`}
+          </span>
+        )}
+        {!pull && <span className="muted no-print">Záloha nenastavená: druhé stanoviště tu chybí</span>}
         <button className="print no-print" onClick={() => window.print()}>Tisk</button>
       </div>
       {!results.length && <p className="card card-pad">Zatím žádné registrované posádky.</p>}

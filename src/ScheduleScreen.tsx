@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
-import { generateSchedule, helmsmanClashes, scheduleStats } from './domain/schedule.ts'
+import { crewClashes, generateSchedule, scheduleStats } from './domain/schedule.ts'
 import { DISCIPLINE_NAME, type Crew, type Discipline } from './domain/types.ts'
 import { WarningIcon } from './icons.tsx'
 import type { AppState } from './store.ts'
@@ -64,7 +64,7 @@ export function ScheduleScreen({ state, setState }: Props) {
     setTimeout(() => { window.print(); setPrinting(undefined) })
   }
 
-  const clashes = helmsmanClashes(registered)
+  const clashes = crewClashes(registered)
   const clashing = new Set(clashes.flatMap(c => c.startNumbers))
   const decimal = (n: number) => n.toFixed(1).replace('.', ',')
 
@@ -76,7 +76,7 @@ export function ScheduleScreen({ state, setState }: Props) {
           <label className="field">Začátek <TimeInput value={firstStart} onChange={setFirstStart} /></label>
           <label className="field">Rozestup (min) <input type="number" min={1} value={intervalText} onChange={e => setIntervalText(e.target.value)} /></label>
           <button className="btn-primary" onClick={generate} disabled={!registered.length}>Vygenerovat startovku</button>
-          <p className="help">Doporučený rozestup je 8 min. Počítá se s {registered.length} registrovanými posádkami.</p>
+          <p className="help">Doporučený rozestup je 8 min. Počítá se s {registered.length} registrovanými posádkami. Prioritní posádky jedou pramici první, kategorie se promíchají a střety kormidelníků i společných členů se vyřeší samy.</p>
         </div>
         <div className="figures">
           <div className="figure"><div className="figure-label">Poslední start</div><div className="figure-value">{stats.lastStart}</div></div>
@@ -97,7 +97,7 @@ export function ScheduleScreen({ state, setState }: Props) {
           <div>
             {clashes.map(({ helmsman, startNumbers: [a, b], shortMinutes }) => (
               <div className="alert-item" key={`${a}-${b}`}>
-                <div className="alert-title">Kormidelník {helmsman} řídí posádky {a} a {b}</div>
+                <div className="alert-title">{helmsman ? `Kormidelník ${helmsman} řídí posádky ${a} a ${b}` : `Posádky ${a} a ${b} mají společné členy`}</div>
                 Pozdější jízda by musela startovat o {shortMinutes} min později. Přetáhněte jednu z nich jinam.
               </div>
             ))}
@@ -158,7 +158,7 @@ export function ScheduleScreen({ state, setState }: Props) {
                     </td>
                     <td><span className="bib">{c.startNumber}</span></td>
                     <td className="secondary">{c.category}</td>
-                    <td className="crew-name-cell">{c.crewName}</td>
+                    <td className="crew-name-cell">{c.crewName}{c.priority && <> <span className="badge badge-warning">prioritní</span></>}</td>
                     <td className="secondary">
                       <span className="helm">{c.helmsman}{clashing.has(c.startNumber!) && <span className="badge badge-danger no-print">střet</span>}</span>
                     </td>

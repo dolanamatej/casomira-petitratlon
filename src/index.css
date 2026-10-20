@@ -64,6 +64,9 @@ small,
   font-size: 15px;
   color: var(--muted);
 }
+.warn-text {
+  color: var(--danger-ink);
+}
 :focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;

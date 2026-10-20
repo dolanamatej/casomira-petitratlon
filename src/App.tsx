@@ -27,7 +27,7 @@ export default function App() {
       {tab === 'crews' && <CrewsScreen state={state} setState={setState} />}
       {tab === 'schedule' && <ScheduleScreen state={state} setState={setState} />}
       {tab === 'timing' && <TimingScreen state={state} setState={setState} takeover={backup.takeover} claim={backup.claim} takingOver={backup.takingOver} />}
-      {tab === 'results' && <ResultsScreen state={state} />}
+      {tab === 'results' && <ResultsScreen state={state} pull={backup.status.configured ? backup.pull : undefined} />}
       {tab === 'sync' && <SyncScreen state={state} setState={setState} {...backup} />}
       </main>
     </>

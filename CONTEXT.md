@@ -16,6 +16,7 @@
 - **DNF** – posádka nedokončila disciplínu. Zmizí ze seznamu „na trati“ a ve výsledovce je na konci kategorie bez pořadí, se zkratkou DNF místo času. Jde kdykoli vrátit. Diskvalifikace (DSQ) se zvlášť nerozlišuje, zapisuje se také jako DNF.
 - **Nouzový režim** – když appka selže, převezme měření člověk přímo v Google tabulce, jako v minulých letech. Závod nesmí skončit kvůli appce.
 - **Časovka** – čitelný list v Google tabulce v rozložení loňského vzoru: bloky po kategoriích, řádek na posádku, P550 i C2 na jednom řádku, časy jako běžné hodiny. Slouží lidem a nouzovému režimu. Surový log událostí je zvlášť a slouží jen k obnově appky.
+- **Společní členové** – posádky, které mají kromě kormidelníka další společné lidi. Jejich jízdy se nesmí překrývat stejně jako u sdíleného kormidelníka.
 - **Kormidelník** – člověk, který řídí loď posádky. Startér ho vyvolává podle startovky. Projekt nepoužívá slovo „kapitán“.
 - **Start** – skutečný okamžik stisku tlačítka Start. Plánovaný čas ze startovky je jen orientační a do výsledku nevstupuje. Posádky startují po jedné.
 - **Čekačka** – čas, který posádka prostála na trati pramice. Zapisuje se na kartičku během trasy P550 a obsluha ho v cíli opíše do appky. Odečítá se od času P550. Kánoe čekačku nemá.
@@ -33,7 +34,10 @@
 | Shoda celkového času na sekundu znamená sdílené místo zobrazené jako rozsah (2.–5.), další posádka je 6. Bez dalšího kritéria. | Shoda je vzácná a další pravidlo by se muselo vysvětlovat. |
 | Posádka navíc nemá plánovaný čas startu. Řádek v časovce jí podle čísla najde nebo založí Apps Script v prázdném řádku bloku kategorie. | Startovka je jen orientační. |
 | Rozestup startů jde nastavit při generování, doporučená hodnota je 8 minut a formulář ukáže dopad na délku závodu. Limit 4 lodí na trati je orientační a hlídá ho ukazatel na obrazovce Měření, ne generátor. | Loňský medián P550 je 31 min. Při 8 min je průměrně ~4 pramice na trati a starty 27 posádek trvají ~3,5 h. Přísný limit by závod protáhl skoro o 2 h. |
-| Na P550 startují posádky od nejpomalejší kategorie (Žabičky → Vlčata → Skautky → Skauti → OPEN), uvnitř kategorie podle startovního čísla. Pořadí na C2 plyne z posunu o polovinu slotů. | Pomalé posádky jedou dlouhou pramici, dokud je trať prázdná, a závod nekončí čekáním na nejpomalejší. |
+| Kategorie se ve startovce rovnoměrně promíchají, uvnitř kategorie podle startovního čísla. Pořadí na C2 plyne z posunu o polovinu slotů. | Na prvním závodě (2026) startovaly nejdřív samé pomalé posádky: začátek se táhl a pak se trať zahltila rychlými. |
+| Generátor sám prohazuje posádky, dokud nezmizí střety kormidelníků a posádek se společnými členy (pole „Společní členové s“, čísla posádek). Co nejde vyřešit, ukáže jako dřív. | Ruční přetahování kvůli kolizím bylo pracné. |
+| Prioritní posádka dostane nejdřívější start pramice, na kterém nemá střet s jinou prioritní posádkou; ostatní vyplní mezery. Kánoi má naplánovanou běžně, ale smí ji jet kdykoli. | Dvě prioritní posádky se stejnými lidmi tak pojedou co nejdřív po sobě. Kánoe není úzké hrdlo. |
+| Oprava času zruší opravovanou událost. | V detailu posádky zůstane jen jeden platný start a cíl; dřív obsluha rušila omylem opravu místo původního času. |
 | Stack: React + TypeScript + Vite, bez dalších knihoven (žádný router, state manager ani UI kit). | Appku udržuje jeden člověk. Obrazovka Měření je živý seznam, kde se React hodí. |
 | Hosting na GitHub Pages s ručně psaným service workerem (cache-first). Na zkoušce nanečisto se musí projít krok: vypnout wifi, restartovat a otevřít appku. | Záložní soubor HTML na disku by data uložená pod `https://` neviděl. |
 | Apps Script je samostatný projekt (ne vložený do tabulky) a tabulku otevírá podle `SHEET_ID`. | Tabulka je na sdíleném disku organizace; vložený skript tam nejde nasadit jako webová aplikace. |

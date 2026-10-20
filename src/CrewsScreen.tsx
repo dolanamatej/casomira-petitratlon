@@ -75,9 +75,9 @@ export function CrewsScreen({ state, setState }: Props) {
       )}
       <div className="card table-card">
         <table className="table crews-table">
-          <colgroup><col style={{ width: 92 }} /><col style={{ width: 130 }} /><col style={{ width: 150 }} /><col style={{ width: '28%' }} /><col style={{ width: '20%' }} /><col /></colgroup>
+          <colgroup><col style={{ width: 92 }} /><col style={{ width: 130 }} /><col style={{ width: 130 }} /><col style={{ width: 150 }} /><col style={{ width: '28%' }} /><col style={{ width: '18%' }} /><col style={{ width: 130 }} /><col /></colgroup>
           <thead>
-            <tr><th>Číslo</th><th>Zaplaceno</th><th className="inset">Kategorie</th><th className="inset">Posádka</th><th className="inset">Kormidelník</th><th className="inset">Oddíl</th></tr>
+            <tr><th>Číslo</th><th>Zaplaceno</th><th title="Pramici pojede co nejdřív, kánoi kdykoli bude mít volno">Prioritní start</th><th className="inset">Kategorie</th><th className="inset">Posádka</th><th className="inset">Kormidelník</th><th className="inset" title="Startovní čísla posádek se společnými členy; jejich jízdy se nesmí překrývat">Společní členové s</th><th className="inset">Oddíl</th></tr>
           </thead>
           <tbody>
             {visible.map(({ crew, i }) => (
@@ -96,6 +96,12 @@ export function CrewsScreen({ state, setState }: Props) {
                     {crew.paid ? 'ano' : 'ne'}
                   </label>
                 </td>
+                <td>
+                  <label className={crew.priority ? 'paid yes' : 'paid'}>
+                    <input type="checkbox" aria-label="Prioritní start" checked={!!crew.priority} onChange={e => updateCrew(i, { priority: e.target.checked })} />
+                    {crew.priority ? 'ano' : 'ne'}
+                  </label>
+                </td>
                 <td className="secondary">
                   <select className="cell-input" aria-label="Kategorie" value={crew.category} onChange={e => updateCrew(i, { category: e.target.value as Category })}>
                     {CATEGORIES.map(c => <option key={c}>{c}</option>)}
@@ -103,6 +109,7 @@ export function CrewsScreen({ state, setState }: Props) {
                 </td>
                 <td className="crew-name-cell"><input className="cell-input" aria-label="Posádka" value={crew.crewName} onChange={e => updateCrew(i, { crewName: e.target.value })} /></td>
                 <td className="secondary"><input className="cell-input" aria-label="Kormidelník" value={crew.helmsman} onChange={e => updateCrew(i, { helmsman: e.target.value })} /></td>
+                <td className="secondary"><input className="cell-input" aria-label="Společní členové s posádkami" placeholder="č. 12, 15" value={crew.sharesWith ?? ''} onChange={e => updateCrew(i, { sharesWith: e.target.value })} /></td>
                 <td className="secondary"><input className="cell-input" aria-label="Oddíl" value={crew.club} onChange={e => updateCrew(i, { club: e.target.value })} /></td>
               </tr>
             ))}
